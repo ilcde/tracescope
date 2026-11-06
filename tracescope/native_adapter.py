@@ -16,7 +16,7 @@ def run(config,emit):
     else: command=[compiler,str(src),'-g','-O2' if optimize else '-O0','-fno-omit-frame-pointer','-std=c17' if language=='c' else '-std=c++17','-o',str(exe)]
     start=time.perf_counter_ns(); result=subprocess.run(command,capture_output=True,text=True,encoding='utf-8',errors='replace',env=env,cwd=directory,timeout=45)
     emit({'metrics':{'compileMs':(time.perf_counter_ns()-start)/1e6},'command':command})
-    if result.returncode: raise RuntimeError(result.stderr)
+    if result.returncode: raise RuntimeError((result.stderr or result.stdout or f'Compiler exited {result.returncode}')[:12000])
     build=digest(exe.read_bytes());objdump=find('objdump')
     assembly=subprocess.run([objdump,'-d','-l','-C',str(exe)],capture_output=True,text=True,timeout=15).stdout if objdump else ''
     instructions=[];line=0

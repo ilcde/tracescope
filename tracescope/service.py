@@ -29,7 +29,8 @@ class Runner:
         # Resolve in the launcher's working directory before the worker changes cwd.
         for tool in ('gcc','g++','gdb','objdump','rustc','java','javac','kotlinc'):
             path=find(tool)
-            if path:env['TRACESCOPE_'+tool.upper().replace('+','P')]=str(Path(path).resolve())
+            # Keep launcher symlinks (rustc -> rustup); argv[0] selects the tool.
+            if path:env['TRACESCOPE_'+tool.upper().replace('+','P')]=os.path.abspath(path)
         command=([sys.executable,'--worker'] if getattr(sys,'frozen',False) else [sys.executable,'-m','tracescope.worker'])+[str(folder/'config.json')]
         proc=subprocess.Popen(command,cwd=ROOT,stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True,encoding='utf-8',env=env,start_new_session=os.name!='nt',creationflags=subprocess.CREATE_NO_WINDOW if os.name=='nt' else 0)
         limits=ProcessLimits(proc)
