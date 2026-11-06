@@ -6,6 +6,7 @@ import {validateTrace,playbackStep} from '../src/model';
 import {instrument} from '../src/wasm/instrument';
 import {fitGrowth} from '../src/experiments';
 import {en,vi} from '../src/i18n';
+await fs.mkdir('evidence',{recursive:true});
 
 test('real WASM execution: changed input, exact bigint, baseline and pure replay',async()=>{
  const source='const n=Number(input()); let sum=0; for(let i=0;i<n;i++){sum+=i;} const huge=9007199254740993n; console.log(sum,huge);';
