@@ -63,7 +63,7 @@ jobs:
           .venv/bin/pip install -r requirements.txt
           mkdir -p evidence
           .venv/bin/python -m tracescope doctor > evidence/environment.json
-          .venv/bin/python -m pytest tests/test_core.py tests/test_journeys.py tests/test_connection.py tests/test_projects.py -q -p no:faulthandler --junitxml=evidence/linux.xml
+          .venv/bin/python -m pytest tests/test_core.py tests/test_journeys.py tests/test_connection.py tests/test_projects.py tests/test_aggregates.py -q -p no:faulthandler --junitxml=evidence/linux.xml
       - uses: actions/setup-node@v4
         if: startsWith(matrix.image, 'fedora:')
         with:
@@ -126,7 +126,7 @@ jobs:
           python -m pip install -r requirements.txt
           New-Item -ItemType Directory -Force evidence | Out-Null
           python -m tracescope doctor > evidence/environment.json
-          python -m pytest tests/test_core.py tests/test_journeys.py tests/test_connection.py tests/test_projects.py -q -p no:faulthandler --junitxml=evidence/windows.xml
+          python -m pytest tests/test_core.py tests/test_journeys.py tests/test_connection.py tests/test_projects.py tests/test_aggregates.py -q -p no:faulthandler --junitxml=evidence/windows.xml
       - uses: actions/upload-artifact@v4
         if: always()
         with:

@@ -12,14 +12,16 @@ result={'status':'failed','renderer':'GTK / WebKit2 4.1','display':'Xvfb X11','s
 
 def check():
     try:
+        assert window.events.loaded.wait(30),'WebKit page load timeout'
         deadline=time.monotonic()+60
         while time.monotonic()<deadline:
-            if window.evaluate_js('!!document.querySelector(".run-button")'):break
+            ready=window.evaluate_js('!!document.querySelector(".run-button")')
+            if ready is True:break
             time.sleep(.2)
-        else:raise AssertionError('Application did not render')
+        else:raise AssertionError('Application did not render: '+str(window.evaluate_js('document.body.innerText')))
         window.evaluate_js('document.querySelector(".run-button").click()')
         while time.monotonic()<deadline:
-            if window.evaluate_js('document.querySelector(".status-label")?.textContent.includes("Completed")'):break
+            if window.evaluate_js('document.querySelector(".status-label")?.textContent.includes("Completed")') is True:break
             time.sleep(.2)
         else:raise AssertionError('Local JavaScript execution did not complete')
         # Click timeline end using the native range setter so React observes it.

@@ -28,7 +28,7 @@ def run(config,emit):
         match=re.match(r'\s*([\da-f]+):\s+((?:[\da-f]{2} )+)\s*(\S+)\s*(.*)',row)
         if match: instructions.append(dict(address='0x'+match[1],bytes=match[2].strip(),mnemonic=match[3],operands=match[4],line=line,layer='machine code'))
     emit({'buildHash':build,'artifacts':[dict(kind='assembly',label='Exact binary / '+Path(compiler).name,buildHash=build,instructions=instructions[:15000])],
-          'limitations':['GDB source snapshots; C++ containers and Rust ownership are not reconstructed. Values may be optimized out. Heap allocations are not comprehensively tracked.']})
+          'limitations':['GDB source snapshots with bounded aggregate fields. Raw C++/Rust representation is shown without executing pretty-printers. Ownership, allocation lifetimes and complete heap tracking are not reconstructed. Values may be optimized out.']})
     recorder=Recorder(emit,config.get('maxEvents',2000))
     if config.get('mode')=='benchmark':
         start=time.perf_counter_ns();p=subprocess.run([str(exe)]+config.get('args',[]),input=config.get('stdin',''),capture_output=True,text=True,env=env,cwd=directory,timeout=10)
@@ -41,6 +41,31 @@ def run(config,emit):
         return gdb.write(s,timeout_sec=15,raise_error_on_timeout=False)
     def result_payload(rows):
         return next((r.get('payload',{}) for r in rows if r.get('type')=='result' and r.get('message')=='done'),{})
+    def typed(raw):
+        value=raw.get('value','<uncaptured>')
+        state='optimized-out' if 'optimized out' in value else 'unavailable' if '<error' in value or '<unavailable>' in value else 'available' if 'value' in raw else 'uncaptured'
+        return dict(type=raw.get('type','unknown'),value=value,state=state,address=None,size=None)
+    def aggregate(name,fallback):
+        if not re.fullmatch(r'[A-Za-z_$][\w$]*',name):return fallback
+        root=result_payload(cmd('-var-create - * '+json.dumps(name)))
+        if not root.get('name'):return fallback
+        budget=[64]
+        def capture(node,depth=0):
+            value=typed(node);count=int(node.get('numchild','0'))
+            if not count:return value
+            if depth>=3 or budget[0]<=0:return dict(value,state='truncated')
+            rows=result_payload(cmd('-var-list-children --all-values '+node['name']+' 0 '+str(min(32,budget[0]))))
+            children={}
+            for child in rows.get('children',[]):
+                # pygdbmi versions normalize the MI child wrapper differently.
+                child=child.get('child',child);budget[0]-=1
+                if 'type' not in child and child.get('exp') in ('public','private','protected'):child['type']='C++ access group'
+                children[child.get('exp',child.get('name','?'))]=capture(child,depth+1)
+                if budget[0]<=0:break
+            if children:value.update(children=children,length=count,value=value['value'] if 'value' in node else '{'+str(count)+' fields}',state='truncated' if len(children)<count else 'available')
+            return value
+        try:return capture(root)
+        finally:cmd('-var-delete '+root['name'])
     start=time.perf_counter_ns();exitcode=0;seen_user=False
     def user_file(frame):
         try:
@@ -48,7 +73,7 @@ def run(config,emit):
             return name if name in config.get('files',{filename:''}) else None
         except ValueError:return None
     try:
-        cmd('-gdb-set auto-load off');cmd('-gdb-set debuginfod enabled off');cmd('-gdb-set pagination off');cmd('-gdb-set confirm off');cmd('-gdb-set print elements 32');cmd('-gdb-set print pretty off')
+        cmd('-gdb-set auto-load off');cmd('-gdb-set may-call-functions off');cmd('-gdb-set debuginfod enabled off');cmd('-gdb-set pagination off');cmd('-gdb-set confirm off');cmd('-gdb-set print elements 32');cmd('-gdb-set print pretty off')
         cmd('-file-exec-and-symbols '+json.dumps(str(exe).replace('\\','/')))
         rows=cmd('-break-insert '+('tracescope_user::main' if language=='rust' else 'main'))
         if any(r.get('type')=='result' and r.get('message')=='error' for r in rows):raise RuntimeError('GDB could not locate the user entry point: '+str(rows))
@@ -70,8 +95,9 @@ def run(config,emit):
             frame=stop.get('frame',{});values={}
             variables=result_payload(cmd('-stack-list-variables --simple-values')).get('variables',[])
             for v in variables[:64]:
-                raw=v.get('value','<unavailable>');state='optimized-out' if 'optimized out' in raw else 'available' if 'value' in v else 'unavailable'
-                values[v['name']]=dict(type=v.get('type','unknown'),value=raw,state=state,address=None,size=None)
+                value=typed(v)
+                if 'value' not in v:value=aggregate(v['name'],value)
+                values[v['name']]=value
             stack=result_payload(cmd('-stack-list-frames 0 20')).get('stack',[])
             current_file=user_file(frame)
             if current_file:

@@ -42,8 +42,28 @@ class Inspector:
         elif t in (set,frozenset):
             items = [(str(i),v) for i,v in enumerate(itertools.islice(value,32))]
         else:
-            # No __dict__ lookup on user objects: descriptor overrides could execute code.
-            return dict(base, state='uncaptured')
+            if type(t) is not type:return dict(base,state='uncaptured')
+            # Invoke only CPython's storage descriptors directly. Do not resolve
+            # attributes on the instance, execute properties, or call user hooks.
+            classes=type.__getattribute__(t,'__mro__')
+            mappings=[type.__getattribute__(cls,'__dict__') for cls in classes]
+            if any('__getattribute__' in mapping for mapping in mappings[:-1]):return dict(base,state='uncaptured')
+            fields={};storage=False
+            for mapping in mappings:
+                descriptor=mapping.get('__dict__')
+                if type(descriptor) is types.GetSetDescriptorType:
+                    raw=descriptor.__get__(value,t)
+                    if type(raw) is dict:
+                        storage=True
+                        for key,item in itertools.islice(dict.items(raw),32):
+                            if type(key) is str:fields.setdefault(key,item)
+                for key,descriptor in mapping.items():
+                    if type(descriptor) is types.MemberDescriptorType and len(fields)<32:
+                        storage=True
+                        try:fields.setdefault(key,descriptor.__get__(value,t))
+                        except AttributeError:pass
+            if not storage:return dict(base,state='uncaptured')
+            return dict(base,children={key:self.value(item,seen,depth+1) for key,item in fields.items()},length=len(fields),state='truncated' if len(fields)>=32 else 'available')
         children = {k:self.value(v,seen,depth+1) for k,v in items}
         return dict(base, children=children, length=len(value), state='truncated' if len(value)>32 else 'available')
 

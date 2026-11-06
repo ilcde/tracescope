@@ -1,4 +1,4 @@
-import ast, dis, io, os, sys, threading, time, types
+import ast, dis, io, os, sys, threading, time, types, json
 from pathlib import Path
 from .inspect_values import Inspector
 from .protocol import Recorder, TraceLimit, digest
@@ -19,8 +19,9 @@ def run(config, emit):
         for item in c.co_consts:
             if isinstance(item,types.CodeType): walk(item)
     walk(code)
-    emit({'artifacts':[dict(kind='bytecode',label='CPython '+sys.version.split()[0], instructions=instructions, buildHash=digest(source))],
-          'buildHash':digest(source), 'metrics':{'compileMs':compile_ms},
+    build_hash=digest(json.dumps(config.get('files',{config.get('filename','main.py'):source}),sort_keys=True,ensure_ascii=False))
+    emit({'artifacts':[dict(kind='bytecode',label='CPython '+sys.version.split()[0], instructions=instructions, buildHash=build_hash)],
+          'buildHash':build_hash, 'metrics':{'compileMs':compile_ms},
           'limitations':['CPython line events are before-line, not after-statement. Native extensions are opaque. Objects retained for stable identities affect memory.']})
     recorder = Recorder(emit,config.get('maxEvents',5000)); inspector = Inspector()
     control = {'mode':'continue', 'depth':0, 'paused':False, 'stop':False, 'target':None}

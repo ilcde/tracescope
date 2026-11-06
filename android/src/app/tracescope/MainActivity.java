@@ -38,7 +38,7 @@ public final class MainActivity extends Activity {
     web.setWebChromeClient(new WebChromeClient(){
       @Override public boolean onShowFileChooser(WebView view,ValueCallback<Uri[]> callback,FileChooserParams params){
         if(fileCallback!=null)fileCallback.onReceiveValue(null);fileCallback=callback;
-        Intent intent=new Intent(Intent.ACTION_OPEN_DOCUMENT);intent.addCategory(Intent.CATEGORY_OPENABLE);intent.setType("*/*");
+        Intent intent=new Intent(Intent.ACTION_OPEN_DOCUMENT);intent.addCategory(Intent.CATEGORY_OPENABLE);intent.setType("*/*");intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE,params.getMode()==FileChooserParams.MODE_OPEN_MULTIPLE);
         startActivityForResult(intent,41);return true;
       }
     });
@@ -53,7 +53,7 @@ public final class MainActivity extends Activity {
     }});
     if(state!=null)web.restoreState(state);else web.loadUrl("https://appassets.androidplatform.net/assets/index.html");
   }
-  @Override protected void onActivityResult(int request,int result,Intent data){super.onActivityResult(request,result,data);if(request==41&&fileCallback!=null){fileCallback.onReceiveValue(result==RESULT_OK&&data!=null?new Uri[]{data.getData()}:null);fileCallback=null;}if(request==42&&pendingExport!=null){if(result==RESULT_OK&&data!=null)try(OutputStream output=getContentResolver().openOutputStream(data.getData())){output.write(pendingExport);}catch(IOException ignored){}pendingExport=null;}}
+  @Override protected void onActivityResult(int request,int result,Intent data){super.onActivityResult(request,result,data);if(request==41&&fileCallback!=null){Uri[] selected=null;if(result==RESULT_OK&&data!=null){if(data.getClipData()!=null){int count=Math.min(64,data.getClipData().getItemCount());selected=new Uri[count];for(int i=0;i<count;i++)selected[i]=data.getClipData().getItemAt(i).getUri();}else if(data.getData()!=null)selected=new Uri[]{data.getData()};}fileCallback.onReceiveValue(selected);fileCallback=null;}if(request==42&&pendingExport!=null){if(result==RESULT_OK&&data!=null)try(OutputStream output=getContentResolver().openOutputStream(data.getData())){output.write(pendingExport);}catch(IOException ignored){}pendingExport=null;}}
   @Override protected void onSaveInstanceState(Bundle state){super.onSaveInstanceState(state);web.saveState(state);}
   @Override protected void onPause(){web.onPause();super.onPause();}
   @Override protected void onResume(){super.onResume();web.onResume();}

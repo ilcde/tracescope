@@ -26,6 +26,18 @@ def test_exact_values_cycles_and_no_user_code():
     class MetaTrap(metaclass=Meta):pass
     assert inspector.value(MetaTrap())['type']=='object (custom metaclass)'
 
+def test_python_object_storage_without_getters():
+    class Node:
+        __slots__=('value','next','__dict__')
+        @property
+        def dangerous(self):raise AssertionError('property executed')
+    node=Node();node.value=21;node.next=node;node.label='node'
+    captured=Inspector().value(node)
+    assert captured['children']['value']['value']=='21'
+    assert captured['children']['label']['value']=='node'
+    assert captured['children']['next']['relation']=='aliases'
+    assert 'dangerous' not in captured['children']
+
 def test_trace_validation_rejects_corruption():
     trace=manifest('python','x=1','main.py','test');validate_trace(trace)
     trace['source']='x=2'
