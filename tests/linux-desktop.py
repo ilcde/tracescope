@@ -1,5 +1,5 @@
 """Exercise an installed GTK/WebKit window on an Xvfb display in CI."""
-import json, os, threading, time, traceback
+import json, os, threading, time, traceback, tempfile
 from pathlib import Path
 import webview
 from tracescope.service import make_server
@@ -9,6 +9,7 @@ server=make_server('127.0.0.1',0,False,None)
 threading.Thread(target=server.serve_forever,daemon=True).start()
 window=webview.create_window('TraceScope Linux acceptance',f'http://127.0.0.1:{server.server_port}/#token={server.token}',width=1440,height=950)
 result={'status':'failed','renderer':'GTK / WebKit2 4.1','display':'Xvfb X11','securityAcceptance':False}
+profile=tempfile.TemporaryDirectory(prefix='tracescope-webview-test-')
 
 def check():
     try:
@@ -43,12 +44,12 @@ def check():
         result.update(status='passed',javascriptExecution=True,networkDiagram=True,fullscreen=True)
     except Exception:
         result['error']=traceback.format_exc()
-        try:result['page']=window.evaluate_js('({url:location.href,text:document.body.innerText,html:document.body.innerHTML.slice(0,4000)})')
+        try:result['page']=window.evaluate_js('({url:location.origin+location.pathname,text:document.body.innerText,html:document.body.innerHTML.slice(0,4000)})')
         except Exception:pass
     finally:
         (evidence/'linux-desktop.json').write_text(json.dumps(result,indent=2));window.destroy()
 
 threading.Timer(90,lambda:os._exit(80)).start()
-webview.start(check,gui='gtk');server.shutdown()
+webview.start(check,gui='gtk',private_mode=False,storage_path=profile.name);server.shutdown()
 print(json.dumps(result,indent=2),flush=True)
 os._exit(0 if result['status']=='passed' else 1)

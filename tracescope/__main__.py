@@ -1,6 +1,6 @@
 import argparse,json,sys,threading,time
 from pathlib import Path
-from .discovery import doctor
+from .discovery import doctor, data_root
 from .protocol import validate_trace
 from .service import Runner,make_server
 
@@ -27,12 +27,25 @@ def main():
         time.sleep(.1);Path(a.out).parent.mkdir(parents=True,exist_ok=True);Path(a.out).write_text(json.dumps(run['data'],ensure_ascii=False,indent=2),encoding='utf-8')
         print(json.dumps({'status':run['data']['status'],'events':len(run['data']['events']),'output':a.out,'diagnostics':run['data']['diagnostics']}))
         sys.exit(0 if run['data']['status']=='completed' else 1)
-    server=make_server(a.host,a.port,a.trusted_local,a.token,a.cert,a.key,a.allow_origin)
+    # Reuse the desktop origin across launches so the WebView's local project
+    # and IndexedDB session remain reachable. Concurrent windows get a free port.
+    port_file=data_root()/'desktop-port';preferred=a.port
+    if a.command=='desktop' and not preferred:
+        try:
+            saved=int(port_file.read_text())
+            if 1024<=saved<=65535:preferred=saved
+        except (OSError,ValueError):pass
+    try:server=make_server(a.host,preferred,a.trusted_local,a.token,a.cert,a.key,a.allow_origin)
+    except OSError:
+        if a.command!='desktop' or a.port or not preferred:raise
+        server=make_server(a.host,0,a.trusted_local,a.token,a.cert,a.key,a.allow_origin)
+    if a.command=='desktop' and not a.port and (not preferred or preferred==server.server_port):
+        port_file.parent.mkdir(parents=True,exist_ok=True);port_file.write_text(str(server.server_port))
     url=f"{'https' if a.cert else 'http'}://{a.host}:{server.server_port}/#token={server.token}"
     print('TraceScope: '+url,flush=True)
     if a.command=='desktop':
         import webview
-        threading.Thread(target=server.serve_forever,daemon=True).start();webview.create_window('TraceScope',url,width=1440,height=950,min_size=(420,640));webview.start();server.shutdown()
+        threading.Thread(target=server.serve_forever,daemon=True).start();webview.create_window('TraceScope',url,width=1440,height=950,min_size=(420,640));webview.start(private_mode=False,storage_path=str(data_root()/'webview'));server.shutdown()
     else:
         try:server.serve_forever()
         except KeyboardInterrupt:server.shutdown()
