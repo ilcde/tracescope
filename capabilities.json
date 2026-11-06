@@ -1,0 +1,332 @@
+{
+  "schema": "tracescope-capabilities/1",
+  "productAcceptance": "incomplete",
+  "adapters": [
+    {
+      "id": "python",
+      "name": "Python",
+      "runtime": "CPython 3.11.6",
+      "host": "Windows AMD64",
+      "target": "CPython VM",
+      "abi": "CPython 3.11",
+      "mode": "local runner",
+      "granularity": "line, call, return, exception, optional opcode",
+      "types": "exact builtins; bounded containers",
+      "memory": "logical IDs; no physical layout",
+      "assembly": "real CPython bytecode only",
+      "implementation": "limited",
+      "verification": "tested",
+      "evidence": [
+        "evidence/python.json"
+      ],
+      "limit": "Native calls opaque; no concurrent thread capture. Live control supported.",
+      "limitVi": "Không quan sát bên trong lời gọi gốc; chưa ghi các luồng đồng thời. Có điều khiển trực tiếp."
+    },
+    {
+      "id": "javascript",
+      "name": "JavaScript",
+      "runtime": "QuickJS WASM package 0.32.0",
+      "host": "browser / Node",
+      "target": "WASM-hosted VM",
+      "abi": "QuickJS bridge",
+      "mode": "local WASM",
+      "granularity": "instrumented statement snapshots",
+      "types": "runtime; exact bigint",
+      "memory": "logical object IDs",
+      "assembly": "generated JS only; no JIT/WASM stepping",
+      "implementation": "limited",
+      "verification": "tested",
+      "evidence": [
+        "evidence/javascript-input-5.json",
+        "evidence/javascript-input-8.json",
+        "evidence/ui-smoke.json"
+      ],
+      "limit": "No Node/DOM API bridge; expressions and unbraced loop bodies lack individual substeps.",
+      "limitVi": "Chưa có cầu nối API Node/DOM; chưa có bước riêng cho biểu thức và thân vòng lặp không có ngoặc."
+    },
+    {
+      "id": "typescript",
+      "name": "TypeScript",
+      "runtime": "TypeScript 5.9.2 + QuickJS",
+      "host": "browser / Node",
+      "target": "WASM-hosted VM",
+      "abi": "QuickJS bridge",
+      "mode": "local WASM",
+      "granularity": "original source statement coordinates",
+      "types": "static checker; runtime types separate",
+      "memory": "logical object IDs",
+      "assembly": "generated JS only",
+      "implementation": "limited",
+      "verification": "tested",
+      "evidence": [
+        "evidence/typescript-input-5.json",
+        "evidence/typescript-input-8.json"
+      ],
+      "limit": "Small teaching standard-library declaration set; no project/module resolver.",
+      "limitVi": "Tập khai báo thư viện chuẩn nhỏ phục vụ học tập; chưa phân giải dự án/mô-đun."
+    },
+    {
+      "id": "java",
+      "name": "Java",
+      "runtime": "JDK 21.0.8",
+      "host": "Windows AMD64",
+      "target": "JVM",
+      "abi": "JVM classfile",
+      "mode": "local runner / JDI",
+      "granularity": "before-line, uncaught exception",
+      "types": "JDI locals, fields and arrays",
+      "memory": "JDI object IDs",
+      "assembly": "javap bytecode; no JIT code",
+      "implementation": "limited",
+      "verification": "tested",
+      "evidence": [
+        "evidence/java.json"
+      ],
+      "limit": "Single Main.java. No GC/allocation stream, live controls or JIT stepping.",
+      "limitVi": "Một tệp Main.java. Chưa có luồng sự kiện GC/cấp phát, điều khiển trực tiếp hoặc bước JIT."
+    },
+    {
+      "id": "kotlin",
+      "name": "Kotlin",
+      "runtime": "Kotlin/JVM 2.3.10 + JDK 21",
+      "host": "Windows AMD64",
+      "target": "JVM",
+      "abi": "JVM classfile",
+      "mode": "local runner / JDI",
+      "granularity": "generated JVM line mappings",
+      "types": "JDI runtime locals",
+      "memory": "JDI object IDs",
+      "assembly": "javap bytecode",
+      "implementation": "limited",
+      "verification": "tested",
+      "evidence": [
+        "evidence/kotlin.json"
+      ],
+      "limit": "Single Main.kt. Coroutine state machines are not reconstructed into logical continuations.",
+      "limitVi": "Một tệp Main.kt. Chưa dựng lại tiếp diễn logic từ máy trạng thái coroutine."
+    },
+    {
+      "id": "c",
+      "name": "C",
+      "runtime": "GCC / GDB (w64devkit 2.5.0)",
+      "host": "Windows AMD64",
+      "target": "x86-64",
+      "abi": "Windows x64",
+      "mode": "local native runner",
+      "granularity": "GDB before-line",
+      "types": "debug metadata",
+      "memory": "textual values/pointers; no heap tracker",
+      "assembly": "exact executable objdump",
+      "implementation": "limited",
+      "verification": "tested",
+      "evidence": [
+        "evidence/c.json"
+      ],
+      "limit": "Single C17 file. No CMake project import, sanitizer path or complete heap lifetimes.",
+      "limitVi": "Một tệp C17. Chưa nhập dự án CMake, chạy sanitizer hoặc ghi đủ vòng đời heap."
+    },
+    {
+      "id": "cpp",
+      "name": "C++",
+      "runtime": "GCC / GDB (w64devkit 2.5.0)",
+      "host": "Windows AMD64",
+      "target": "x86-64",
+      "abi": "Windows x64",
+      "mode": "local native runner",
+      "granularity": "GDB before-line",
+      "types": "debug metadata",
+      "memory": "textual values/pointers",
+      "assembly": "exact executable objdump",
+      "implementation": "limited",
+      "verification": "tested",
+      "evidence": [
+        "evidence/cpp.json"
+      ],
+      "limit": "Single C++17 file. No container pretty-printer or complete class layout renderer.",
+      "limitVi": "Một tệp C++17. Chưa có trình hiển thị container hoặc bố trí lớp đầy đủ."
+    },
+    {
+      "id": "rust",
+      "name": "Rust",
+      "runtime": "rustc 1.90.0 + GDB",
+      "host": "Windows AMD64",
+      "target": "x86-64-pc-windows-gnu",
+      "abi": "Windows x64",
+      "mode": "local native runner",
+      "granularity": "DWARF before-line",
+      "types": "debug metadata",
+      "memory": "textual values",
+      "assembly": "exact executable objdump",
+      "implementation": "limited",
+      "verification": "tested",
+      "evidence": [
+        "evidence/rust.json",
+        "evidence/rust-modified.json"
+      ],
+      "limit": "Single .rs file; no Cargo, move/borrow/drop tracking.",
+      "limitVi": "Một tệp .rs; chưa có Cargo hoặc ghi vết move/borrow/drop."
+    },
+    {
+      "id": "html",
+      "name": "HTML",
+      "runtime": "tree-sitter WASM + browser",
+      "host": "browser",
+      "target": "DOM",
+      "abi": "web",
+      "mode": "local WASM + browser",
+      "granularity": "syntax + DOM snapshot",
+      "types": "element and computed property categories",
+      "memory": "logical DOM IDs",
+      "assembly": "not applicable",
+      "implementation": "limited",
+      "verification": "tested",
+      "evidence": [
+        "evidence/ui-smoke.json",
+        "evidence/html.png"
+      ],
+      "limit": "One document; user scripts and network blocked. Snapshot enumeration is not browser parser stepping.",
+      "limitVi": "Một tài liệu; chặn script người dùng và mạng. Liệt kê ảnh chụp không phải bước bộ phân tích trình duyệt."
+    },
+    {
+      "id": "css",
+      "name": "CSS",
+      "runtime": "tree-sitter WASM + browser",
+      "host": "browser",
+      "target": "CSSOM / layout",
+      "abi": "web",
+      "mode": "local WASM + browser",
+      "granularity": "syntax + computed styles and boxes",
+      "types": "CSS properties and units",
+      "memory": "not applicable",
+      "assembly": "not applicable",
+      "implementation": "limited",
+      "verification": "tested",
+      "evidence": [
+        "evidence/ui-smoke.json"
+      ],
+      "limit": "Controlled document. Cascade provenance and internal paint timing unavailable.",
+      "limitVi": "Tài liệu có kiểm soát. Chưa có nguồn gốc cascade hoặc thời gian vẽ nội bộ."
+    }
+  ],
+  "assemblyProfiles": [
+    "x86-16 real mode",
+    "x86-32",
+    "x86-64",
+    "ARM32 ARM",
+    "ARM32 Thumb",
+    "AArch64",
+    "RV32I",
+    "RV64I"
+  ],
+  "platforms": [
+    {
+      "id": "windows",
+      "implementation": "limited",
+      "verification": "tested"
+    },
+    {
+      "id": "fedora",
+      "implementation": "blocked",
+      "verification": "untested"
+    },
+    {
+      "id": "debian",
+      "implementation": "blocked",
+      "verification": "untested"
+    },
+    {
+      "id": "arch",
+      "implementation": "blocked",
+      "verification": "untested"
+    },
+    {
+      "id": "android",
+      "implementation": "limited",
+      "verification": "tested"
+    }
+  ],
+  "platformNote": "Windows native window and packaged Python execution tested. Android 16 emulator local WASM tested; physical-device and paired TLS acceptance untested. Fedora acceptance blocked: user confirmed no host/VM. Native trusted mode is not a sandbox.",
+  "platformNoteVi": "Đã kiểm thử cửa sổ gốc Windows và Python đóng gói. Đã kiểm thử WASM cục bộ trên máy ảo Android 16; chưa kiểm chứng thiết bị thật/ghép nối TLS. Fedora bị chặn vì không có máy/VM. Chế độ tin cậy không phải sandbox.",
+  "isaEvidence": [
+    {
+      "profile": "x86-16",
+      "implementation": "limited",
+      "verification": "tested",
+      "execution": "Unicorn 2.1.4",
+      "assembler": "Keystone 0.9.2",
+      "endianness": "little",
+      "abi": "freestanding",
+      "evidence": "evidence/isa-x86-16.json"
+    },
+    {
+      "profile": "x86-32",
+      "implementation": "limited",
+      "verification": "tested",
+      "execution": "Unicorn 2.1.4",
+      "assembler": "Keystone 0.9.2",
+      "endianness": "little",
+      "abi": "freestanding",
+      "evidence": "evidence/isa-x86-32.json"
+    },
+    {
+      "profile": "x86-64",
+      "implementation": "limited",
+      "verification": "tested",
+      "execution": "Unicorn 2.1.4",
+      "assembler": "Keystone 0.9.2",
+      "endianness": "little",
+      "abi": "freestanding",
+      "evidence": "evidence/isa-x86-64.json"
+    },
+    {
+      "profile": "arm32",
+      "implementation": "limited",
+      "verification": "tested",
+      "execution": "Unicorn 2.1.4",
+      "assembler": "Keystone 0.9.2",
+      "endianness": "little",
+      "abi": "freestanding",
+      "evidence": "evidence/isa-arm32.json"
+    },
+    {
+      "profile": "thumb",
+      "implementation": "limited",
+      "verification": "tested",
+      "execution": "Unicorn 2.1.4",
+      "assembler": "Keystone 0.9.2",
+      "endianness": "little",
+      "abi": "freestanding",
+      "evidence": "evidence/isa-thumb.json"
+    },
+    {
+      "profile": "arm64",
+      "implementation": "limited",
+      "verification": "tested",
+      "execution": "Unicorn 2.1.4",
+      "assembler": "Keystone 0.9.2",
+      "endianness": "little",
+      "abi": "freestanding",
+      "evidence": "evidence/isa-arm64.json"
+    },
+    {
+      "profile": "rv32",
+      "implementation": "limited",
+      "verification": "tested",
+      "execution": "Unicorn 2.1.4",
+      "assembler": "Zig/LLVM",
+      "endianness": "little",
+      "abi": "freestanding",
+      "evidence": "evidence/isa-rv32.json"
+    },
+    {
+      "profile": "rv64",
+      "implementation": "limited",
+      "verification": "tested",
+      "execution": "Unicorn 2.1.4",
+      "assembler": "Zig/LLVM",
+      "endianness": "little",
+      "abi": "freestanding",
+      "evidence": "evidence/isa-rv64.json"
+    }
+  ]
+}

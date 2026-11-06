@@ -1,0 +1,15 @@
+import {chromium} from '@playwright/test';
+import fs from 'node:fs/promises';
+const targets=await (await fetch('http://127.0.0.1:9223/json/list')).json();
+const browser=await chromium.connectOverCDP('http://127.0.0.1:9223');const page=browser.contexts()[0].pages()[0];const errors=[];page.on('pageerror',e=>errors.push(String(e)));
+if(await page.getByTitle('Ngôn ngữ',{exact:true}).count())await page.getByTitle('Ngôn ngữ',{exact:true}).click();
+console.log('Android WebView:',await page.title(),await page.locator('body').innerText().then(s=>s.slice(0,100)));
+await page.getByRole('button',{name:'Run & trace'}).click();
+await page.waitForFunction(()=>document.querySelector('.status-label')?.textContent?.includes('Completed'),{timeout:30000});
+const eventCount=await page.locator('.event-counter').innerText();const slider=page.getByRole('slider',{name:'Execution timeline'});await slider.fill(await slider.getAttribute('max'));
+await page.getByRole('button',{name:'Output',exact:true}).click();await page.getByRole('button',{name:'Console',exact:true}).click();
+const output=await page.locator('.console-output').innerText();
+await page.getByRole('button',{name:'Diagram',exact:true}).click();await page.screenshot({path:'evidence/android-app.png'});
+await page.getByTitle('Language',{exact:true}).click();await page.screenshot({path:'evidence/android-app-vi.png'});
+const info=await page.evaluate(()=>({userAgent:navigator.userAgent,width:innerWidth,height:innerHeight,overflow:document.documentElement.scrollWidth>innerWidth}));
+await fs.writeFile('evidence/android-smoke.json',JSON.stringify({eventCount,output,errors,...info},null,2));console.log(JSON.stringify({eventCount,output,errors,...info}));await browser.close();

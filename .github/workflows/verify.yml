@@ -1,0 +1,120 @@
+name: Verify platforms and languages
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  web:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - run: node tests/web-ui.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: web-evidence
+          path: evidence/
+  linux:
+    name: Linux / ${{ matrix.image }}
+    runs-on: ubuntu-24.04
+    container:
+      image: ${{ matrix.image }}
+      options: --cap-add=SYS_PTRACE --security-opt seccomp=unconfined
+    strategy:
+      fail-fast: false
+      matrix:
+        image: ['fedora:43', 'fedora:44', 'ubuntu:24.04']
+    steps:
+      - name: Distribution prerequisites
+        run: |
+          if command -v dnf >/dev/null; then
+            dnf install -y git python3 python3-pip gcc gcc-c++ gdb binutils curl unzip tar gzip libicu
+          else
+            apt-get update
+            apt-get install -y git python3 python3-pip python3-venv gcc g++ gdb binutils curl unzip tar gzip libicu-dev
+          fi
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Kotlin compiler
+        run: |
+          curl --fail --location --retry 3 https://github.com/JetBrains/kotlin/releases/download/v2.3.10/kotlin-compiler-2.3.10.zip -o /tmp/kotlin.zip
+          unzip -q /tmp/kotlin.zip -d /opt
+          echo /opt/kotlinc/bin >> "$GITHUB_PATH"
+      - name: Rust toolchain
+        run: |
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain 1.90.0 --profile minimal
+          echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+      - name: Install and test actual adapters
+        run: |
+          python3 -m venv .venv
+          .venv/bin/pip install -r requirements.txt
+          mkdir -p evidence
+          .venv/bin/python -m tracescope doctor > evidence/environment.json
+          .venv/bin/python -m pytest tests/test_core.py tests/test_journeys.py -q -p no:faulthandler --junitxml=evidence/linux.xml
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: linux-${{ strategy.job-index }}-evidence
+          path: evidence/
+  windows:
+    runs-on: windows-2025
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Toolchains
+        shell: pwsh
+        run: |
+          ./scripts/setup-toolchains.ps1
+          Invoke-WebRequest https://github.com/JetBrains/kotlin/releases/download/v2.3.10/kotlin-compiler-2.3.10.zip -OutFile .tools/kotlin.zip
+          Expand-Archive .tools/kotlin.zip .tools/kotlin
+          (Resolve-Path .tools/kotlin/kotlinc/bin).Path >> $env:GITHUB_PATH
+      - name: Install and test actual adapters
+        shell: pwsh
+        run: |
+          python -m pip install -r requirements.txt
+          New-Item -ItemType Directory -Force evidence | Out-Null
+          python -m tracescope doctor > evidence/environment.json
+          python -m pytest tests/test_core.py tests/test_journeys.py -q -p no:faulthandler --junitxml=evidence/windows.xml
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: windows-evidence
+          path: evidence/
+  android:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - run: npm ci && npm run build
+      - run: sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
+      - run: python3 scripts/build_android.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android-debug-apk
+          path: packages/TraceScope-debug.apk

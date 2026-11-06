@@ -1,0 +1,14 @@
+[
+  {
+    "file": "w64devkit.7z.exe",
+    "url": "https://github.com/skeeto/w64devkit/releases/download/v2.5.0/w64devkit-x64-2.5.0.7z.exe",
+    "sha256": "7ac8f55befb93720f048f2c788704543fbc632c0164a8239ecbdefc9559481c5",
+    "bytes": 39253184
+  },
+  {
+    "file": "rust.tar.xz",
+    "url": "https://static.rust-lang.org/dist/rust-1.90.0-x86_64-pc-windows-gnu.tar.xz",
+    "sha256": "9a78b7cdc0386078440a8ea0e9aac756d9045188f048bd0b26b68dba90bd34e0",
+    "bytes": 296344172
+  }
+]
