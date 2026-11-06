@@ -93,13 +93,13 @@ def run(config,emit):
                 break
             if stop.get('reason')=='signal-received': raise RuntimeError('Debugger signal: '+stop.get('signal-name','unknown'))
             frame=stop.get('frame',{});values={}
-            variables=result_payload(cmd('-stack-list-variables --simple-values')).get('variables',[])
+            current_file=user_file(frame)
+            variables=result_payload(cmd('-stack-list-variables --simple-values')).get('variables',[]) if current_file else []
             for v in variables[:64]:
                 value=typed(v)
                 if 'value' not in v:value=aggregate(v['name'],value)
                 values[v['name']]=value
-            stack=result_payload(cmd('-stack-list-frames 0 20')).get('stack',[])
-            current_file=user_file(frame)
+            stack=result_payload(cmd('-stack-list-frames 0 20')).get('stack',[]) if current_file else []
             if current_file:
                 if language=='rust' and not seen_user:
                     cmd('-interpreter-exec console '+json.dumps('skip -rfu ^(core|std|alloc)::'))

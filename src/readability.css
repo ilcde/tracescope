@@ -7,3 +7,4 @@
 .diagram-content{padding-top:14px}.execution-badge{margin:0 0 14px}.graph-explanation{margin-bottom:8px}@media(max-width:680px){.diagram-title p{display:none}.diagram-caption{padding:8px}.diagram-title h2{margin:0}}
 
 .project-tabs{display:flex;flex-wrap:wrap;gap:4px;padding:6px 9px;border-bottom:1px solid var(--border);max-height:110px;overflow:auto}.project-tabs button{font-size:12px;border:1px solid transparent}.project-tabs .active{border-color:var(--accent);color:var(--accent);background:var(--accent-deep)}
+.startup-error{margin:8vh auto;padding:32px;max-width:720px;border:1px solid #36534b;border-radius:16px;background:#14251f;color:#e0eee8;font:16px/1.6 system-ui}.startup-error pre{white-space:pre-wrap;color:#ffbdad}.startup-error button{padding:10px 22px;border-radius:8px;background:#74ddbb;color:#10251d;border:0;font:inherit}

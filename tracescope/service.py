@@ -8,6 +8,7 @@ from .protocol import manifest, validate_trace
 from .complexity import analyze
 from .limits import ProcessLimits
 from .project import validate_files
+from .conditions import predicate
 
 class Runner:
     def __init__(self,trusted=False):
@@ -15,6 +16,11 @@ class Runner:
     def start(self,config):
         if config.get('language') not in ('python','java','kotlin','c','cpp','rust','assembly'):raise ValueError('Unknown execution adapter')
         if config['language']!='assembly' and not self.trusted:raise PermissionError('Native runner is locked. Start with --trusted-local only for code you trust; this is not isolation.')
+        if config.get('breakpointCondition') or config.get('watch'):
+            if config['language']!='python':raise ValueError('Conditional breakpoints and observed-value watches currently require Python')
+            predicate(config.get('breakpointCondition',''))
+            watch=config.get('watch',[])
+            if not isinstance(watch,list) or len(watch)>16 or any(not isinstance(name,str) or not name.isidentifier() for name in watch):raise ValueError('Watch at most 16 variable names')
         if len(config.get('source',''))>100000:raise ValueError('Source exceeds 100 KiB')
         if len(self.runs)>=20:raise ValueError('Session limit reached; restart runner or export sessions')
         if sum(r['data']['status'] in ('running','paused') for r in self.runs.values())>=2:raise ValueError('At most two active runs')

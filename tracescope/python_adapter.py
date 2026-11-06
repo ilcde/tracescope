@@ -2,6 +2,7 @@ import ast, dis, io, os, sys, threading, time, types, json
 from pathlib import Path
 from .inspect_values import Inspector
 from .protocol import Recorder, TraceLimit, digest
+from .conditions import predicate
 
 def run(config, emit):
     source, filename = config['source'], config.get('filename','main.py')
@@ -41,6 +42,7 @@ def run(config, emit):
     threading.Thread(target=commands,daemon=True).start()
     frames={}; nextframe=0; lastframe=None; maxdepth=0
     breakpoints=set(config.get('breakpoints',[]))
+    check_condition=predicate(config.get('breakpointCondition',''));watch_names=config.get('watch',[]);watched={}
     def trace(frame,event,arg):
         nonlocal nextframe,lastframe,maxdepth
         current_file=project_files.get(str(Path(frame.f_code.co_filename).resolve()))
@@ -60,9 +62,17 @@ def run(config, emit):
         extra={'stack':stack, 'depth':depth, 'instruction':str(frame.f_lasti),'file':current_file}
         if event=='return': extra['result']=inspector.value(arg)
         if event=='exception': extra['exception']=type.__getattribute__(arg[0],'__name__')
-        recorder.event('instruction' if event=='opcode' else event,frame.f_lineno,frames[id(frame)],frame.f_code.co_name,inspector.locals(frame.f_locals),**extra)
+        values=inspector.locals(frame.f_locals)
+        changed=[]
         if event in ('line','opcode'):
-            pause = control['mode']=='pause' or frame.f_lineno in breakpoints
+            for name in watch_names:
+                key=(frames[id(frame)],name);now=values.get(name)
+                if key in watched and watched[key]!=now:changed.append(name)
+                watched[key]=now
+        if changed:extra['watchChanges']=changed
+        recorder.event('instruction' if event=='opcode' else event,frame.f_lineno,frames[id(frame)],frame.f_code.co_name,values,**extra)
+        if event in ('line','opcode'):
+            pause = control['mode']=='pause' or (frame.f_lineno in breakpoints and current_file==config.get('breakpointFile',config.get('filename','main.py')) and check_condition(frame.f_locals)) or bool(changed)
             pause |= control['mode']=='stepInto'
             pause |= control['mode']=='stepOver' and depth<=control['depth']
             pause |= control['mode']=='stepOut' and depth<control['depth']

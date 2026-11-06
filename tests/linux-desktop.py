@@ -41,7 +41,10 @@ def check():
             return False
         GLib.idle_add(screenshot);assert captured.wait(10)
         result.update(status='passed',javascriptExecution=True,networkDiagram=True,fullscreen=True)
-    except Exception:result['error']=traceback.format_exc()
+    except Exception:
+        result['error']=traceback.format_exc()
+        try:result['page']=window.evaluate_js('({url:location.href,text:document.body.innerText,html:document.body.innerHTML.slice(0,4000)})')
+        except Exception:pass
     finally:
         (evidence/'linux-desktop.json').write_text(json.dumps(result,indent=2));window.destroy()
 

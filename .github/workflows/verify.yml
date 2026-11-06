@@ -41,7 +41,7 @@ jobs:
             dnf install -y git python3 python3-pip gcc gcc-c++ gdb binutils curl unzip tar gzip libicu rpm-build python3-gobject gtk3 webkit2gtk4.1 xorg-x11-server-Xvfb xorg-x11-xauth dbus-x11 dejavu-sans-fonts
           else
             apt-get update
-            apt-get install -y git python3 python3-pip python3-venv gcc g++ gdb binutils curl unzip tar gzip libicu-dev
+            apt-get install -y git python3 python3-pip python3-venv gcc g++ gdb binutils curl unzip tar gzip libicu-dev python3-gi gir1.2-gtk-3.0 gir1.2-webkit2-4.1 xvfb xauth dbus-x11 fonts-dejavu-core
           fi
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
@@ -63,26 +63,28 @@ jobs:
           .venv/bin/pip install -r requirements.txt
           mkdir -p evidence
           .venv/bin/python -m tracescope doctor > evidence/environment.json
-          .venv/bin/python -m pytest tests/test_core.py tests/test_journeys.py tests/test_connection.py tests/test_projects.py tests/test_aggregates.py -q -p no:faulthandler --junitxml=evidence/linux.xml
+          .venv/bin/python -m pytest tests/test_core.py tests/test_journeys.py tests/test_connection.py tests/test_projects.py tests/test_aggregates.py tests/test_conditions.py -q -p no:faulthandler --junitxml=evidence/linux.xml
       - uses: actions/setup-node@v4
-        if: startsWith(matrix.image, 'fedora:')
         with:
           node-version: '22'
           cache: npm
-      - name: Build and install Fedora RPM
-        if: startsWith(matrix.image, 'fedora:')
+      - name: Build and install Linux package
         run: |
           npm ci
           npm run build
-          .venv/bin/python scripts/build_linux.py --rpm
-          dnf install -y packages/*.rpm
+          if command -v dnf >/dev/null; then
+            .venv/bin/python scripts/build_linux.py --rpm
+            dnf install -y packages/*.rpm
+          else
+            .venv/bin/python scripts/build_linux.py --deb
+            dpkg -i packages/*.deb
+          fi
           cd /tmp
           tracescope doctor
           printf 'addi a0, zero, 7\naddi a0, a0, 14\n' > /tmp/package-test.s
           tracescope trace /tmp/package-test.s --language assembly --profile rv64 --out /tmp/package-test.json
           python3 -c 'import json; t=json.load(open("/tmp/package-test.json")); assert t["events"][-1]["values"]["x10"]["value"]=="21"'
       - name: Installed GTK window and WASM execution
-        if: startsWith(matrix.image, 'fedora:')
         env:
           # WebKit cannot establish its nested user namespace in the CI
           # container. This variable applies ONLY to this UI test process.
@@ -91,9 +93,8 @@ jobs:
         run: |
           export TRACESCOPE_EVIDENCE="$GITHUB_WORKSPACE/evidence"
           export PYTHONPATH=/usr/share/tracescope
-          dbus-run-session -- xvfb-run -a -s '-screen 0 1600x1000x24' "$HOME/.local/state/tracescope/runtime-$(cat /usr/share/tracescope/python-version)/bin/python" tests/linux-desktop.py
+          xvfb-run -a -s '-screen 0 1600x1000x24' dbus-run-session -- "$HOME/.local/state/tracescope/runtime-$(cat /usr/share/tracescope/python-version)/bin/python" tests/linux-desktop.py
       - uses: actions/upload-artifact@v4
-        if: startsWith(matrix.image, 'fedora:')
         with:
           name: linux-${{ strategy.job-index }}-packages
           path: packages/
@@ -126,7 +127,7 @@ jobs:
           python -m pip install -r requirements.txt
           New-Item -ItemType Directory -Force evidence | Out-Null
           python -m tracescope doctor > evidence/environment.json
-          python -m pytest tests/test_core.py tests/test_journeys.py tests/test_connection.py tests/test_projects.py tests/test_aggregates.py -q -p no:faulthandler --junitxml=evidence/windows.xml
+          python -m pytest tests/test_core.py tests/test_journeys.py tests/test_connection.py tests/test_projects.py tests/test_aggregates.py tests/test_conditions.py -q -p no:faulthandler --junitxml=evidence/windows.xml
       - uses: actions/upload-artifact@v4
         if: always()
         with:
