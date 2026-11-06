@@ -7,6 +7,7 @@ from .discovery import ROOT, doctor, find
 from .protocol import manifest, validate_trace
 from .complexity import analyze
 from .limits import ProcessLimits
+from .project import validate_files
 
 class Runner:
     def __init__(self,trusted=False):
@@ -19,13 +20,23 @@ class Runner:
         if sum(r['data']['status'] in ('running','paused') for r in self.runs.values())>=2:raise ValueError('At most two active runs')
         extensions={'python':'py','java':'java','kotlin':'kt','c':'c','cpp':'cpp','rust':'rs','assembly':'s'}
         filename=('Main' if config['language'] in ('java','kotlin') else 'main')+'.'+extensions[config['language']]
+        filename=config.get('entry',filename)
+        files=validate_files(config.get('files',{}),filename,config['source'])
         data=manifest(config['language'],config['source'],filename,'tracescope-'+config['language']+'/0.1.0')
         run_id=data['runId'];folder=(Path(sys.executable).parent if getattr(sys,'frozen',False) else ROOT)/'.runs'/run_id;folder.mkdir(parents=True)
-        config.update(filename=filename,workdir=str(folder),maxEvents=min(5000,max(1,int(config.get('maxEvents',3000)))))
+        source_dir=folder/'sources';build_dir=folder/'build';build_dir.mkdir();source_dir.mkdir()
+        for name,source in files.items():
+            path=source_dir/name;path.parent.mkdir(parents=True,exist_ok=True);path.write_text(source,encoding='utf-8')
+        config.update(filename=filename,files=files,projectDir=str(source_dir),workdir=str(build_dir),maxEvents=min(5000,max(1,int(config.get('maxEvents',3000)))))
+        data['sources']=files
         if not isinstance(config.get('args',[]),list) or not all(isinstance(s,str) for s in config.get('args',[])):raise ValueError('Arguments must be strings')
         if not isinstance(config.get('stdin',''),str) or len(config.get('stdin',''))>65536:raise ValueError('Invalid stdin')
         (folder/'config.json').write_text(json.dumps(config),encoding='utf-8')
         env=os.environ.copy();env['PYTHONIOENCODING']='utf-8'
+        user_env=config.get('env',{})
+        if user_env and not self.trusted:raise PermissionError('Environment overrides require trusted-local mode')
+        if not isinstance(user_env,dict) or len(user_env)>32 or any(not isinstance(k,str) or not isinstance(v,str) or len(v)>4096 or '\x00' in k+v or '=' in k for k,v in user_env.items()):raise ValueError('Invalid environment settings')
+        env.update(user_env)
         # Resolve in the launcher's working directory before the worker changes cwd.
         for tool in ('gcc','g++','gdb','objdump','rustc','java','javac','kotlinc'):
             path=find(tool)
@@ -92,20 +103,25 @@ class Runner:
         if run['process'].poll() is not None:raise ValueError('Run already ended')
         run['process'].stdin.write(json.dumps(command)+'\n');run['process'].stdin.flush()
 
-def make_server(host='127.0.0.1',port=7432,trusted=False,token=None,cert=None,key=None):
+def make_server(host='127.0.0.1',port=7432,trusted=False,token=None,cert=None,key=None,origins=()):
     if host not in ('127.0.0.1','localhost','::1') and (not cert or not key or not token):raise ValueError('Remote runner requires TLS certificate, key, and an explicit token')
     runner=Runner(trusted);secret=token or secrets.token_urlsafe(32)
+    allowed_origins={'https://appassets.androidplatform.net','http://127.0.0.1:5173','http://localhost:5173','https://ilcde.github.io'}
+    for origin in origins:
+        parsed=urlparse(origin)
+        if parsed.scheme!='https' or not parsed.netloc or parsed.path or parsed.query or parsed.fragment:raise ValueError('Allowed origins must be HTTPS origins without a path')
+        allowed_origins.add(origin)
     class Handler(SimpleHTTPRequestHandler):
         def __init__(self,*args,**kwargs):super().__init__(*args,directory=str(ROOT/'dist'),**kwargs)
         def log_message(self,*args):pass
         def end_headers(self):
             self.send_header('X-Content-Type-Options','nosniff');self.send_header('Referrer-Policy','no-referrer')
             origin=self.headers.get('Origin','')
-            if origin in ('https://appassets.androidplatform.net','http://127.0.0.1:5173','http://localhost:5173'):
+            if origin in allowed_origins:
                 self.send_header('Access-Control-Allow-Origin',origin);self.send_header('Vary','Origin')
             super().end_headers()
         def do_OPTIONS(self):
-            if self.headers.get('Origin','') not in ('https://appassets.androidplatform.net','http://127.0.0.1:5173','http://localhost:5173'):
+            if self.headers.get('Origin','') not in allowed_origins:
                 return self.respond({'error':'Origin not allowed'},403)
             self.send_response(204);self.send_header('Access-Control-Allow-Methods','GET, POST, OPTIONS');self.send_header('Access-Control-Allow-Headers','Authorization, Content-Type');self.end_headers()
         def respond(self,data,status=200):

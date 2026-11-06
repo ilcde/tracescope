@@ -37,6 +37,7 @@ public class TraceAgent {
     List<Object>stack=new ArrayList<>();int index=0;
     for(StackFrame f:thread.frames()){stack.add(Map.of("id",""+index++,"name",f.location().method().name(),"line",Math.max(0,f.location().lineNumber())));if(index>=32)break;}
     Map<String,Object> e=new LinkedHashMap<>();e.put("kind",kind);e.put("line",Math.max(0,loc.lineNumber()));e.put("function",loc.method().name());e.put("values",values);e.put("thread",Long.toString(thread.uniqueID()));e.put("depth",thread.frameCount());e.put("stack",stack);e.put("instruction",Long.toString(loc.codeIndex()));e.put("frame",thread.uniqueID()+":"+thread.frameCount());
+    try{e.put("file",loc.sourcePath().replace('\\','/'));}catch(AbsentInformationException ignored){}
     System.out.println(json(e));System.out.flush();
   }
   public static void main(String[]args)throws Exception{

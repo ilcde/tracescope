@@ -7,6 +7,9 @@ import {instrument} from '../src/wasm/instrument';
 import {fitGrowth} from '../src/experiments';
 import {en,vi} from '../src/i18n';
 await fs.mkdir('evidence',{recursive:true});
+test('real project modules preserve source-file observations',async()=>{
+ for(const language of ['javascript','typescript'] as const){const extension=language==='typescript'?'ts':'js';const entry='main.'+extension;const helper='helper.'+extension;const source='import {triple} from "./helper";\nconst result=triple(7);\nconsole.log(result);';const files={[entry]:source,[helper]:'export function triple(n'+(language==='typescript'?':number':'')+'){\n const value=n*3;\n return value;\n}'};const trace=await runQuickJS(source,language,'',false,undefined,files,entry);assert.equal(trace.status,'completed',JSON.stringify(trace.diagnostics));assert.equal(trace.events.filter(e=>e.output).map(e=>e.output).join(''),'21\n');assert.ok(trace.events.some(e=>e.file===helper&&e.values.value?.value==='21'));}
+});
 
 test('real WASM execution: changed input, exact bigint, baseline and pure replay',async()=>{
  const source='const n=Number(input()); let sum=0; for(let i=0;i<n;i++){sum+=i;} const huge=9007199254740993n; console.log(sum,huge);';

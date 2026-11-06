@@ -4,7 +4,7 @@ from .discovery import find, ROOT
 from .protocol import Recorder, digest
 
 def run(config,emit):
-    directory=Path(config['workdir']);source=directory/config['filename'];source.write_text(config['source'],encoding='utf-8')
+    directory=Path(config['workdir']);project=Path(config.get('projectDir',directory));source=project/config['filename'];source.write_text(config['source'],encoding='utf-8')
     java=find('java');javac=find('javac');kotlin=find('kotlinc')
     if not java or not javac: raise RuntimeError('JDK 21 required')
     helper=ROOT/'tracescope/jvm/TraceAgent.java'
@@ -12,15 +12,16 @@ def run(config,emit):
     p=subprocess.run([javac,'--add-modules','jdk.jdi','-d',str(directory),str(helper)],capture_output=True,text=True,timeout=30)
     if p.returncode: raise RuntimeError(p.stderr)
     classpath=str(directory); main='Main'
-    if config['language']=='java': command=[javac,'-g','-d',str(directory),str(source)]
+    if config['language']=='java': command=[javac,'-g','-d',str(directory),*[str(project/name) for name in config.get('files',{config['filename']:''}) if name.endswith('.java')]]
     else:
         if not kotlin: raise RuntimeError('Kotlin/JVM compiler required')
-        command=[kotlin,str(source),'-java-parameters','-jvm-target','17','-d',str(directory)]
+        command=[kotlin,*[str(project/name) for name in config.get('files',{config['filename']:''}) if name.endswith('.kt')],'-java-parameters','-jvm-target','17','-d',str(directory)]
         classpath+=os.pathsep+str(Path(kotlin).parent.parent/'lib/kotlin-stdlib.jar');main='MainKt'
+    main=config.get('mainClass',main)
     p=subprocess.run(command,capture_output=True,text=True,timeout=50)
     emit({'metrics':{'compileMs':(time.perf_counter_ns()-start)/1e6},'command':command})
     if p.returncode:raise RuntimeError(p.stderr)
-    classfiles=list(directory.glob('*.class'));build=digest(b''.join(p.read_bytes() for p in sorted(classfiles) if p.stem!='TraceAgent'))
+    classfiles=list(directory.rglob('*.class'));build=digest(b''.join(p.read_bytes() for p in sorted(classfiles) if not p.stem.startswith('TraceAgent')))
     javap=str(Path(java).parent/'javap.exe') if os.name=='nt' else 'javap'
     # Oracle javapath only exposes selected launchers; use javac's real JDK when necessary.
     if os.name=='nt' and not Path(javap).exists():

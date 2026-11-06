@@ -3,24 +3,23 @@ import ts from 'typescript';
 let libraries:Record<string,string>|null=null;
 export function setStandardLibraries(value:Record<string,string>){libraries=value}
 
-export function instrument(source:string,typescript=false,enabled=true){
-  const filename=typescript?'main.ts':'main.js';
+export function instrument(source:string,typescript=false,enabled=true,filename=typescript?'main.ts':'main.js',projectFiles:Record<string,string>={}){
   const file=ts.createSourceFile(filename,source,ts.ScriptTarget.ES2020,true,typescript?ts.ScriptKind.TS:ts.ScriptKind.JS);
   if(/\b__tscope\w*/.test(source))throw Error('Identifiers beginning __tscope are reserved for the tracer.');
   const diagnostics:{message:string;line:number}[]=[];
   const runtimeLib='declare var console:{log(...v:unknown[]):void}; declare function input():string;';
   if(typescript){
-    const files:Record<string,ts.SourceFile>={[filename]:file,'runtime.d.ts':ts.createSourceFile('runtime.d.ts',runtimeLib,ts.ScriptTarget.ES2022,true)};
-    const get=(n:string)=>{const key=n.replace(/\\/g,'/').split('/').at(-1)!;if(files[key])return files[key];const text=libraries?.[key]??ts.sys?.readFile?.(ts.getDefaultLibFilePath({}).replace(/[^/\\]+$/,'')+key);return text?files[key]=ts.createSourceFile(key,text,ts.ScriptTarget.ES2022,true):undefined};
+    const files:Record<string,ts.SourceFile>={...Object.fromEntries(Object.entries(projectFiles).map(([name,text])=>[name,ts.createSourceFile(name,text,ts.ScriptTarget.ES2022,true)])),[filename]:file,'runtime.d.ts':ts.createSourceFile('runtime.d.ts',runtimeLib,ts.ScriptTarget.ES2022,true)};
+    const get=(n:string)=>{const key=n.replace(/\\/g,'/').replace(/^\.?\//,'');if(files[key])return files[key];const text=libraries?.[key]??ts.sys?.readFile?.(ts.getDefaultLibFilePath({}).replace(/[^/\\]+$/,'')+key);return text?files[key]=ts.createSourceFile(key,text,ts.ScriptTarget.ES2022,true):undefined};
     const host:ts.CompilerHost={getSourceFile:get,getDefaultLibFileName:()=> 'lib.es2022.d.ts',writeFile:()=>{},getCurrentDirectory:()=>'',getDirectories:()=>[],fileExists:n=>!!get(n),readFile:n=>get(n)?.text,getCanonicalFileName:n=>n,useCaseSensitiveFileNames:()=>true,getNewLine:()=> '\n'};
-    const program=ts.createProgram([filename,'runtime.d.ts'],{target:ts.ScriptTarget.ES2022,strict:true,noEmit:true},host);
+    const program=ts.createProgram([filename,'runtime.d.ts'],{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.ESNext,moduleResolution:ts.ModuleResolutionKind.Node10,allowJs:true,strict:true,noEmit:true},host);
     for(const d of ts.getPreEmitDiagnostics(program))diagnostics.push({message:ts.flattenDiagnosticMessageText(d.messageText,'\n'),line:d.file&&d.start!==undefined?d.file.getLineAndCharacterOfPosition(d.start).line+1:0});
   }
   const scopes:string[][]=[];let fn='<script>';
   function binding(name:ts.BindingName):string[]{if(ts.isIdentifier(name))return[name.text];return name.elements.flatMap(e=>ts.isOmittedExpression(e)?[]:binding(e.name))}
   const transformer:ts.TransformerFactory<ts.SourceFile>=context=>{
     const f=context.factory;
-    function hook(node:ts.Node,kind='line'):ts.Statement{const pos=file.getLineAndCharacterOfPosition(node.getStart(file));const names=[...new Set(scopes.flat())].filter(n=>n!=='__tscope');return f.createExpressionStatement(f.createCallExpression(f.createIdentifier('__tscope'),undefined,[f.createNumericLiteral(pos.line+1),f.createNumericLiteral(pos.character),f.createStringLiteral(fn),f.createArrayLiteralExpression(names.map(n=>f.createArrayLiteralExpression([f.createStringLiteral(n),f.createArrowFunction(undefined,undefined,[],undefined,f.createToken(ts.SyntaxKind.EqualsGreaterThanToken),f.createIdentifier(n))]))),f.createStringLiteral(kind)]))}
+    function hook(node:ts.Node,kind='line'):ts.Statement{const pos=file.getLineAndCharacterOfPosition(node.getStart(file));const names=[...new Set(scopes.flat())].filter(n=>n!=='__tscope');return f.createExpressionStatement(f.createCallExpression(f.createIdentifier('__tscope'),undefined,[f.createNumericLiteral(pos.line+1),f.createNumericLiteral(pos.character),f.createStringLiteral(fn),f.createArrayLiteralExpression(names.map(n=>f.createArrayLiteralExpression([f.createStringLiteral(n),f.createArrowFunction(undefined,undefined,[],undefined,f.createToken(ts.SyntaxKind.EqualsGreaterThanToken),f.createIdentifier(n))]))),f.createStringLiteral(kind),f.createStringLiteral(filename)]))}
     function statements(nodes:ts.NodeArray<ts.Statement>):ts.Statement[]{return nodes.flatMap(node=>{const visited=ts.visitNode(node,visit) as ts.Statement;if(!enabled||ts.isFunctionDeclaration(node)||ts.isInterfaceDeclaration(node)||ts.isTypeAliasDeclaration(node)||ts.isImportDeclaration(node)||ts.isEmptyStatement(node)||ts.isExpressionStatement(node)&&ts.isStringLiteral(node.expression))return[visited];return[hook(node),visited]})}
     function visit(node:ts.Node):ts.VisitResult<ts.Node>{
       if(ts.isFunctionLike(node)&&'body' in node&&node.body){const old=fn;fn=node.name&&ts.isIdentifier(node.name)?node.name.text:'<closure>';scopes.push(node.parameters.flatMap(p=>binding(p.name)));const value=ts.visitEachChild(node,visit,context);scopes.pop();fn=old;return value}
@@ -38,7 +37,7 @@ export function instrument(source:string,typescript=false,enabled=true){
     }
     return root=>ts.visitNode(root,visit) as ts.SourceFile;
   };
-  const result=ts.transpileModule(source,{fileName:filename,compilerOptions:{target:ts.ScriptTarget.ES2020,module:ts.ModuleKind.None,sourceMap:true},transformers:{before:[transformer]},reportDiagnostics:true});
+  const result=ts.transpileModule(source,{fileName:filename,compilerOptions:{target:ts.ScriptTarget.ES2020,module:ts.ModuleKind.ESNext,sourceMap:true},transformers:{before:[transformer]},reportDiagnostics:true});
   for(const d of result.diagnostics||[])diagnostics.push({message:ts.flattenDiagnosticMessageText(d.messageText,'\n'),line:0});
   return {code:result.outputText,sourceMap:result.sourceMapText,diagnostics};
 }

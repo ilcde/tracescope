@@ -5,15 +5,17 @@ from .discovery import find
 from .protocol import Recorder, digest
 
 def run(config,emit):
-    language=config['language']; directory=Path(config['workdir']); filename=config['filename']; src=directory/filename
+    language=config['language']; directory=Path(config['workdir']); filename=config['filename'];project=Path(config.get('projectDir',directory));src=project/filename
     src.write_text(config['source'],encoding='utf-8')
     exe=directory/('program.exe' if os.name=='nt' else 'program')
     compiler=find({'c':'gcc','cpp':'g++','rust':'rustc'}[language]); debugger=find('gdb')
     if not compiler or not debugger: raise RuntimeError('Compiler and GDB required; run doctor')
     env=os.environ.copy();env['PATH']=str(Path(find('gcc') or compiler).parent)+os.pathsep+env.get('PATH','')
     optimize=config.get('buildProfile')=='optimized'
-    if language=='rust': command=[compiler,str(src),'-g',*(['-C','link-self-contained=yes'] if os.name=='nt' else []),'-C','opt-level='+('2' if optimize else '0'),'-C','linker='+str(find('gcc')),'-o',str(exe)]
-    else: command=[compiler,str(src),'-g','-O2' if optimize else '-O0','-fno-omit-frame-pointer','-std=c17' if language=='c' else '-std=c++17','-o',str(exe)]
+    if language=='rust': command=[compiler,str(src),'--crate-name','tracescope_user','-g',*(['-C','link-self-contained=yes'] if os.name=='nt' else []),'-C','opt-level='+('2' if optimize else '0'),'-C','linker='+str(find('gcc')),'-o',str(exe)]
+    else:
+        sources=[str(project/name) for name in config.get('files',{filename:config['source']}) if Path(name).suffix in (('.c',) if language=='c' else ('.cpp','.cc','.cxx','.c'))]
+        command=[compiler,*sources,'-I',str(project),'-g','-O2' if optimize else '-O0','-fno-omit-frame-pointer','-std=c17' if language=='c' else '-std=c++17','-o',str(exe)]
     start=time.perf_counter_ns(); result=subprocess.run(command,capture_output=True,text=True,encoding='utf-8',errors='replace',env=env,cwd=directory,timeout=45)
     emit({'metrics':{'compileMs':(time.perf_counter_ns()-start)/1e6},'command':command})
     if result.returncode: raise RuntimeError((result.stderr or result.stdout or f'Compiler exited {result.returncode}')[:12000])
@@ -40,10 +42,16 @@ def run(config,emit):
     def result_payload(rows):
         return next((r.get('payload',{}) for r in rows if r.get('type')=='result' and r.get('message')=='done'),{})
     start=time.perf_counter_ns();exitcode=0;seen_user=False
+    def user_file(frame):
+        try:
+            name=Path(frame.get('fullname','')).resolve().relative_to(project.resolve()).as_posix()
+            return name if name in config.get('files',{filename:''}) else None
+        except ValueError:return None
     try:
-        cmd('-gdb-set auto-load off');cmd('-gdb-set pagination off');cmd('-gdb-set confirm off');cmd('-gdb-set print elements 32');cmd('-gdb-set print pretty off')
+        cmd('-gdb-set auto-load off');cmd('-gdb-set debuginfod enabled off');cmd('-gdb-set pagination off');cmd('-gdb-set confirm off');cmd('-gdb-set print elements 32');cmd('-gdb-set print pretty off')
         cmd('-file-exec-and-symbols '+json.dumps(str(exe).replace('\\','/')))
-        cmd('-break-insert main')
+        rows=cmd('-break-insert '+('tracescope_user::main' if language=='rust' else 'main'))
+        if any(r.get('type')=='result' and r.get('message')=='error' for r in rows):raise RuntimeError('GDB could not locate the user entry point: '+str(rows))
         args=' '.join(json.dumps(v) for v in config.get('args',[]))
         # CLI run redirection is controlled by generated absolute paths, never source text.
         rows=cmd('-interpreter-exec console '+json.dumps('run '+args+' < "'+str(stdin).replace('\\','/')+'" > "'+str(stdout).replace('\\','/')+'"'))
@@ -65,12 +73,13 @@ def run(config,emit):
                 raw=v.get('value','<unavailable>');state='optimized-out' if 'optimized out' in raw else 'available' if 'value' in v else 'unavailable'
                 values[v['name']]=dict(type=v.get('type','unknown'),value=raw,state=state,address=None,size=None)
             stack=result_payload(cmd('-stack-list-frames 0 20')).get('stack',[])
-            if str(frame.get('fullname','')).replace('\\','/').endswith(filename):
+            current_file=user_file(frame)
+            if current_file:
                 if language=='rust' and not seen_user:
                     cmd('-interpreter-exec console '+json.dumps('skip -rfu ^(core|std|alloc)::'))
                 seen_user=True
-                recorder.event('line',int(frame.get('line',0)),function=frame.get('func','main'),values=values,instruction=frame.get('addr'),depth=len(stack),stack=[dict(id=str(s.get('level',i)),name=s.get('func','?'),line=int(s.get('line',0))) for i,s in enumerate(stack)])
-            rows=cmd('-exec-step' if language=='rust' or not seen_user or str(frame.get('fullname','')).replace('\\','/').endswith(filename) else '-exec-finish')
+                recorder.event('line',int(frame.get('line',0)),function=frame.get('func','main'),values=values,instruction=frame.get('addr'),file=current_file,depth=len(stack),stack=[dict(id=str(s.get('level',i)),name=s.get('func','?'),line=int(s.get('line',0))) for i,s in enumerate(stack)])
+            rows=cmd('-exec-step' if language=='rust' or not seen_user or current_file else '-exec-finish')
     finally:
         gdb.exit()
     if stdout.exists():recorder.event('io',output=stdout.read_text(encoding='utf-8',errors='replace')[:65536])

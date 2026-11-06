@@ -63,7 +63,7 @@ jobs:
           .venv/bin/pip install -r requirements.txt
           mkdir -p evidence
           .venv/bin/python -m tracescope doctor > evidence/environment.json
-          .venv/bin/python -m pytest tests/test_core.py tests/test_journeys.py -q -p no:faulthandler --junitxml=evidence/linux.xml
+          .venv/bin/python -m pytest tests/test_core.py tests/test_journeys.py tests/test_connection.py tests/test_projects.py -q -p no:faulthandler --junitxml=evidence/linux.xml
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -93,7 +93,7 @@ jobs:
           python -m pip install -r requirements.txt
           New-Item -ItemType Directory -Force evidence | Out-Null
           python -m tracescope doctor > evidence/environment.json
-          python -m pytest tests/test_core.py tests/test_journeys.py -q -p no:faulthandler --junitxml=evidence/windows.xml
+          python -m pytest tests/test_core.py tests/test_journeys.py tests/test_connection.py tests/test_projects.py -q -p no:faulthandler --junitxml=evidence/windows.xml
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -113,6 +113,8 @@ jobs:
           java-version: '21'
       - run: npm ci && npm run build
       - uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools platforms;android-35 build-tools;35.0.0'
       - run: sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
       - run: python3 scripts/build_android.py
       - uses: actions/upload-artifact@v4
