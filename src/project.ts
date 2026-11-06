@@ -1,6 +1,6 @@
 import type {Language} from './model';
 import {preferences} from './preferences';
-export interface Project {schema:'tracescope-project/1';language:Language;entry:string;files:Record<string,string>;activeFile?:string;config?:{stdin?:string;args?:string[];env?:Record<string,string>;mainClass?:string}}
+export interface Project {schema:'tracescope-project/1';language:Language;entry:string;files:Record<string,string>;activeFile?:string;config?:{stdin?:string;args?:string[];env?:Record<string,string>;mainClass?:string;breakpointCondition?:string;watch?:string[];breakpoints?:number[]}}
 const extensions:Record<string,Language>={py:'python',js:'javascript',mjs:'javascript',ts:'typescript',java:'java',kt:'kotlin',c:'c',h:'c',cpp:'cpp',cc:'cpp',cxx:'cpp',hpp:'cpp',rs:'rust',html:'html',css:'css',s:'assembly',asm:'assembly'};
 export function fileLanguage(name:string,fallback:Language):Language{return extensions[name.split('.').pop()?.toLowerCase()||'']||fallback}
 export function validateProject(value:unknown):Project{
@@ -10,6 +10,9 @@ export function validateProject(value:unknown):Project{
  for(const [name,source]of entries){if(!name||name.startsWith('/')||/[\\:\0]/.test(name)||name.split('/').some(part=>!part||['.','..','.git'].includes(part)||part.startsWith('.env'))||typeof source!=='string')throw Error('Invalid project path or source');const length=new TextEncoder().encode(source).length;bytes+=length;if(length>100000)throw Error('Each source file must be at most 100 KB')}
  if(bytes>1000000)throw Error('Project exceeds 1 MB');if(!Object.hasOwn(p.files,p.entry))throw Error('Project entry file is missing');
  if(p.config){if(typeof p.config!=='object'||(p.config.stdin!==undefined&&typeof p.config.stdin!=='string')||(p.config.mainClass!==undefined&&typeof p.config.mainClass!=='string')||(p.config.args!==undefined&&(!Array.isArray(p.config.args)||p.config.args.some(v=>typeof v!=='string')))||(p.config.env!==undefined&&(!p.config.env||Array.isArray(p.config.env)||typeof p.config.env!=='object'||Object.entries(p.config.env).some(([k,v])=>!k||typeof v!=='string'))))throw Error('Invalid project run configuration')}
+ if(p.config?.breakpointCondition!==undefined&&typeof p.config.breakpointCondition!=='string')throw Error('Invalid breakpoint condition');
+ if(p.config?.watch!==undefined&&(!Array.isArray(p.config.watch)||p.config.watch.some(v=>typeof v!=='string')))throw Error('Invalid watch names');
+ if(p.config?.breakpoints!==undefined&&(!Array.isArray(p.config.breakpoints)||p.config.breakpoints.some(v=>!Number.isInteger(v)||v<1)))throw Error('Invalid breakpoints');
  return p;
 }
 export function loadProject():Project|null{try{return validateProject(JSON.parse(preferences.getItem('tracescope-project')||'null'))}catch{return null}}

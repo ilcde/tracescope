@@ -28,6 +28,6 @@ const values=Object.entries(event?.values||{}).filter(([,v])=>v.type!=='function
     </>}
   </div>}
   </div>
-  <div className="diagram-caption"><span><span className="legend-box"/>{t('values')}</span><span><span className="legend-box change"/>{t('changed')}</span><span><span className="legend-line"/>{t('references')}</span></div>
+  <div className="diagram-caption"><span><span className="legend-box"/>{t('values')}</span><span><span className="legend-box change"/>{t('changed')}</span><span><span className={'legend-line '+(view==='neuron'?'reference':'')}/>{t('references')}</span>{view==='neuron'&&<><span><span className="legend-line contains"/>{t('contains')}</span><span><span className="legend-line"/>{t('scope')}</span></>}</div>
  </div>
 }

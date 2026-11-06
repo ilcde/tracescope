@@ -24,7 +24,7 @@ The repository and WebUI were published with the user's explicit approval. Local
 
 ## Verification evidence
 
-The local backend release suite has **35 passing tests**, including all eight ISA profiles, changed inputs, compile failures, exact values, cycles/getter traps, six native multi-file language paths, native aggregate fields, HTTPS-origin/auth checks and Python live conditions/watches. Eight Node test groups cover real QuickJS execution, TypeScript diagnostics, modules, replay, graph invariants, project validation, locale keys and empirical-fit behavior.
+The local backend release suite has **35 passing tests**, including all eight ISA profiles, changed inputs, compile failures, exact values, cycles/getter traps, six native multi-file language paths, native aggregate fields, HTTPS-origin/auth checks and Python live conditions/watches. Nine Node test groups cover real QuickJS execution, TypeScript diagnostics, modules, replay, graph invariants, project validation, locale keys and empirical-fit behavior.
 
 Browser interaction tests exercise the Pages subdirectory layout, actual neuron edges, fullscreen/fit, TypeScript library types, multi-file trace export and helper-file replay, project persistence, stale-helper detection, HTML/CSS rendering, Vietnamese phone layout and disabled browser storage. They capture actual screenshots, not mockups.
 
