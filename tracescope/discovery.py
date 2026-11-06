@@ -2,6 +2,13 @@ import glob, os, platform, shutil, subprocess, sys
 from pathlib import Path
 ROOT=Path(getattr(sys,'_MEIPASS',Path(__file__).resolve().parent.parent))
 
+def data_root():
+    """Writable runtime state, separate from a system-installed application."""
+    override=os.environ.get('TRACESCOPE_DATA_DIR')
+    if override:return Path(override).expanduser().resolve()
+    if os.name=='nt':return Path(os.environ.get('LOCALAPPDATA',Path.home()/'AppData/Local'))/'TraceScope'
+    return Path(os.environ.get('XDG_STATE_HOME',Path.home()/'.local/state'))/'tracescope'
+
 def find(name):
     env=os.environ.get('TRACESCOPE_'+name.upper().replace('+','P'))
     if env and Path(env).exists(): return env

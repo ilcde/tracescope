@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=TraceScope
+Comment=Explore source execution, values and machine instructions
+Exec=tracescope
+Icon=tracescope
+Terminal=false
+Categories=Development;Education;Debugger;
+StartupNotify=true

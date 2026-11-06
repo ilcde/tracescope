@@ -4,6 +4,7 @@ from pathlib import Path
 import unicorn as u, capstone as c, keystone as k
 from unicorn import x86_const as x, arm_const as a, arm64_const as a64, riscv_const as r
 from .protocol import Recorder, digest
+from .discovery import data_root
 
 PROFILES={
  'x86-16':(u.UC_ARCH_X86,u.UC_MODE_16,c.CS_ARCH_X86,c.CS_MODE_16,k.KS_ARCH_X86,k.KS_MODE_16,16,'x86 16-bit real mode (386+ instruction set)'),
@@ -28,7 +29,7 @@ def assemble(source,profile,syntax='intel'):
             src=Path(tmp)/'main.s'; out=Path(tmp)/'main.elf'; src.write_text('.option norelax\n.option norvc\n.text\n.globl _start\n_start:\n'+source,encoding='utf-8')
             target='riscv32-freestanding' if profile=='rv32' else 'riscv64-freestanding'
             script=Path(tmp)/'link.ld';script.write_text('ENTRY(_start)\nSECTIONS { . = 0x1000; .text : { *(.text*) } }')
-            env=os.environ.copy();env['ZIG_GLOBAL_CACHE_DIR']=str(Path(__file__).resolve().parent.parent/'.cache/zig')
+            env=os.environ.copy();env['ZIG_GLOBAL_CACHE_DIR']=str(data_root()/'cache/zig')
             proc=subprocess.run([str(zig),'cc','-target',target,'-mcpu='+('generic_rv32' if profile=='rv32' else 'generic_rv64'),'-mabi='+('ilp32' if profile=='rv32' else 'lp64'),'-nostdlib','-T',str(script),str(src),'-o',str(out)],capture_output=True,text=True,env=env,timeout=30)
             if proc.returncode: raise ValueError(proc.stderr)
             with out.open('rb') as f: return ELFFile(f).get_section_by_name('.text').data()

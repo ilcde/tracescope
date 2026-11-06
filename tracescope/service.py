@@ -3,7 +3,7 @@ import json, os, secrets, shutil, signal, ssl, subprocess, sys, threading, time
 from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
 from pathlib import Path
 from urllib.parse import urlparse,parse_qs
-from .discovery import ROOT, doctor, find
+from .discovery import ROOT, doctor, find, data_root
 from .protocol import manifest, validate_trace
 from .complexity import analyze
 from .limits import ProcessLimits
@@ -23,7 +23,7 @@ class Runner:
         filename=config.get('entry',filename)
         files=validate_files(config.get('files',{}),filename,config['source'])
         data=manifest(config['language'],config['source'],filename,'tracescope-'+config['language']+'/0.1.0')
-        run_id=data['runId'];folder=(Path(sys.executable).parent if getattr(sys,'frozen',False) else ROOT)/'.runs'/run_id;folder.mkdir(parents=True)
+        run_id=data['runId'];folder=data_root()/'runs'/run_id;folder.mkdir(parents=True)
         source_dir=folder/'sources';build_dir=folder/'build';build_dir.mkdir();source_dir.mkdir()
         for name,source in files.items():
             path=source_dir/name;path.parent.mkdir(parents=True,exist_ok=True);path.write_text(source,encoding='utf-8')
