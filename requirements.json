@@ -154,7 +154,7 @@
       "implementation": "limited",
       "verification": "untested",
       "accepted": false,
-      "note": "Partially addressed; the full paragraph has not passed acceptance. See scoped capability evidence."
+      "note": "Expanded in 0.2: multi-file projects/persistence, Python conditions/watches, fullscreen neuron graphs and aggregate fields. Full paragraph acceptance remains open; see docs/REQUIREMENTS.md."
     },
     {
       "id": "TS-04.02",
@@ -163,7 +163,7 @@
       "implementation": "limited",
       "verification": "untested",
       "accepted": false,
-      "note": "Partially addressed; the full paragraph has not passed acceptance. See scoped capability evidence."
+      "note": "Expanded in 0.2: multi-file projects/persistence, Python conditions/watches, fullscreen neuron graphs and aggregate fields. Full paragraph acceptance remains open; see docs/REQUIREMENTS.md."
     },
     {
       "id": "TS-04.03",
@@ -172,7 +172,7 @@
       "implementation": "limited",
       "verification": "untested",
       "accepted": false,
-      "note": "Partially addressed; the full paragraph has not passed acceptance. See scoped capability evidence."
+      "note": "Expanded in 0.2: multi-file projects/persistence, Python conditions/watches, fullscreen neuron graphs and aggregate fields. Full paragraph acceptance remains open; see docs/REQUIREMENTS.md."
     },
     {
       "id": "TS-05.01",
@@ -226,7 +226,7 @@
       "implementation": "limited",
       "verification": "untested",
       "accepted": false,
-      "note": "Partially addressed; the full paragraph has not passed acceptance. See scoped capability evidence."
+      "note": "Expanded in 0.2: multi-file projects/persistence, Python conditions/watches, fullscreen neuron graphs and aggregate fields. Full paragraph acceptance remains open; see docs/REQUIREMENTS.md."
     },
     {
       "id": "TS-06.02",
@@ -235,7 +235,7 @@
       "implementation": "limited",
       "verification": "untested",
       "accepted": false,
-      "note": "Partially addressed; the full paragraph has not passed acceptance. See scoped capability evidence."
+      "note": "Expanded in 0.2: multi-file projects/persistence, Python conditions/watches, fullscreen neuron graphs and aggregate fields. Full paragraph acceptance remains open; see docs/REQUIREMENTS.md."
     },
     {
       "id": "TS-06.03",
@@ -244,7 +244,7 @@
       "implementation": "limited",
       "verification": "untested",
       "accepted": false,
-      "note": "Partially addressed; the full paragraph has not passed acceptance. See scoped capability evidence."
+      "note": "Expanded in 0.2: multi-file projects/persistence, Python conditions/watches, fullscreen neuron graphs and aggregate fields. Full paragraph acceptance remains open; see docs/REQUIREMENTS.md."
     },
     {
       "id": "TS-06.04",
@@ -253,7 +253,7 @@
       "implementation": "limited",
       "verification": "untested",
       "accepted": false,
-      "note": "Partially addressed; the full paragraph has not passed acceptance. See scoped capability evidence."
+      "note": "Expanded in 0.2: multi-file projects/persistence, Python conditions/watches, fullscreen neuron graphs and aggregate fields. Full paragraph acceptance remains open; see docs/REQUIREMENTS.md."
     },
     {
       "id": "TS-06.05",
@@ -262,7 +262,7 @@
       "implementation": "limited",
       "verification": "untested",
       "accepted": false,
-      "note": "Partially addressed; the full paragraph has not passed acceptance. See scoped capability evidence."
+      "note": "Expanded in 0.2: multi-file projects/persistence, Python conditions/watches, fullscreen neuron graphs and aggregate fields. Full paragraph acceptance remains open; see docs/REQUIREMENTS.md."
     },
     {
       "id": "TS-07.01",
@@ -271,7 +271,7 @@
       "implementation": "limited",
       "verification": "untested",
       "accepted": false,
-      "note": "Partially addressed; the full paragraph has not passed acceptance. See scoped capability evidence."
+      "note": "Expanded in 0.2: multi-file projects/persistence, Python conditions/watches, fullscreen neuron graphs and aggregate fields. Full paragraph acceptance remains open; see docs/REQUIREMENTS.md."
     },
     {
       "id": "TS-07.02",
@@ -280,7 +280,7 @@
       "implementation": "limited",
       "verification": "untested",
       "accepted": false,
-      "note": "Partially addressed; the full paragraph has not passed acceptance. See scoped capability evidence."
+      "note": "Expanded in 0.2: multi-file projects/persistence, Python conditions/watches, fullscreen neuron graphs and aggregate fields. Full paragraph acceptance remains open; see docs/REQUIREMENTS.md."
     },
     {
       "id": "TS-07.03",
@@ -289,7 +289,7 @@
       "implementation": "limited",
       "verification": "untested",
       "accepted": false,
-      "note": "Partially addressed; the full paragraph has not passed acceptance. See scoped capability evidence."
+      "note": "Expanded in 0.2: multi-file projects/persistence, Python conditions/watches, fullscreen neuron graphs and aggregate fields. Full paragraph acceptance remains open; see docs/REQUIREMENTS.md."
     },
     {
       "id": "TS-07.04",
@@ -298,7 +298,7 @@
       "implementation": "limited",
       "verification": "untested",
       "accepted": false,
-      "note": "Partially addressed; the full paragraph has not passed acceptance. See scoped capability evidence."
+      "note": "Expanded in 0.2: multi-file projects/persistence, Python conditions/watches, fullscreen neuron graphs and aggregate fields. Full paragraph acceptance remains open; see docs/REQUIREMENTS.md."
     },
     {
       "id": "TS-07.05",
@@ -307,7 +307,7 @@
       "implementation": "limited",
       "verification": "untested",
       "accepted": false,
-      "note": "Partially addressed; the full paragraph has not passed acceptance. See scoped capability evidence."
+      "note": "Expanded in 0.2: multi-file projects/persistence, Python conditions/watches, fullscreen neuron graphs and aggregate fields. Full paragraph acceptance remains open; see docs/REQUIREMENTS.md."
     },
     {
       "id": "TS-08.01",
@@ -903,5 +903,6 @@
       "accepted": false,
       "note": "Partially addressed; the full paragraph has not passed acceptance. See scoped capability evidence."
     }
-  ]
+  ],
+  "verificationWorkflow": "https://github.com/ilcde/tracescope/actions/workflows/verify.yml"
 }

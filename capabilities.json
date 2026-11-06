@@ -5,13 +5,13 @@
     {
       "id": "python",
       "name": "Python",
-      "runtime": "CPython 3.11.6",
-      "host": "Windows AMD64",
+      "runtime": "CPython 3.11 / 3.12 / 3.14",
+      "host": "Windows x86-64; Fedora 43/44 and Ubuntu 24.04 x86-64 containers",
       "target": "CPython VM",
-      "abi": "CPython 3.11",
+      "abi": "host CPython",
       "mode": "local runner",
       "granularity": "line, call, return, exception, optional opcode",
-      "types": "exact builtins; bounded containers",
+      "types": "exact builtins; bounded containers, instance storage and slots",
       "memory": "logical IDs; no physical layout",
       "assembly": "real CPython bytecode only",
       "implementation": "limited",
@@ -19,8 +19,9 @@
       "evidence": [
         "evidence/python.json"
       ],
-      "limit": "Native calls opaque; no concurrent thread capture. Live control supported.",
-      "limitVi": "Không quan sát bên trong lời gọi gốc; chưa ghi các luồng đồng thời. Có điều khiển trực tiếp."
+      "limit": "Multi-file imports, safe object fields and live conditions/watches. Native extension internals and concurrent tracing remain uncaptured.",
+      "limitVi": "Có nhập nhiều tệp, trường đối tượng và điều kiện/theo dõi trực tiếp. Chưa quan sát bên trong phần mở rộng gốc và nhiều luồng.",
+      "verificationWorkflow": "https://github.com/ilcde/tracescope/actions/workflows/verify.yml"
     },
     {
       "id": "javascript",
@@ -41,8 +42,9 @@
         "evidence/javascript-input-8.json",
         "evidence/ui-smoke.json"
       ],
-      "limit": "No Node/DOM API bridge; expressions and unbraced loop bodies lack individual substeps.",
-      "limitVi": "Chưa có cầu nối API Node/DOM; chưa có bước riêng cho biểu thức và thân vòng lặp không có ngoặc."
+      "limit": "Relative ES modules and unbraced loop hooks supported. No Node/DOM API bridge or expression-by-expression stepping.",
+      "limitVi": "Có mô-đun ES tương đối và vòng lặp không ngoặc. Chưa có cầu nối Node/DOM hoặc bước theo từng biểu thức.",
+      "verificationWorkflow": "https://github.com/ilcde/tracescope/actions/workflows/verify.yml"
     },
     {
       "id": "typescript",
@@ -62,14 +64,15 @@
         "evidence/typescript-input-5.json",
         "evidence/typescript-input-8.json"
       ],
-      "limit": "Small teaching standard-library declaration set; no project/module resolver.",
-      "limitVi": "Tập khai báo thư viện chuẩn nhỏ phục vụ học tập; chưa phân giải dự án/mô-đun."
+      "limit": "Real ES2022 standard declarations and relative modules. Runs emitted ES2020 in QuickJS; no npm/Node or DOM bridge.",
+      "limitVi": "Dùng khai báo chuẩn ES2022 và mô-đun tương đối. Chạy ES2020 trong QuickJS; chưa có npm/Node hoặc cầu nối DOM.",
+      "verificationWorkflow": "https://github.com/ilcde/tracescope/actions/workflows/verify.yml"
     },
     {
       "id": "java",
       "name": "Java",
-      "runtime": "JDK 21.0.8",
-      "host": "Windows AMD64",
+      "runtime": "JDK 21",
+      "host": "Windows x86-64; Fedora 43/44 and Ubuntu 24.04 x86-64 containers",
       "target": "JVM",
       "abi": "JVM classfile",
       "mode": "local runner / JDI",
@@ -82,14 +85,15 @@
       "evidence": [
         "evidence/java.json"
       ],
-      "limit": "Single Main.java. No GC/allocation stream, live controls or JIT stepping.",
-      "limitVi": "Một tệp Main.java. Chưa có luồng sự kiện GC/cấp phát, điều khiển trực tiếp hoặc bước JIT."
+      "limit": "Multi-file javac projects with configurable main class. No Maven/Gradle orchestration, GC event stream or JIT stepping.",
+      "limitVi": "Dự án javac nhiều tệp, chọn lớp chính. Chưa tích hợp Maven/Gradle, dòng sự kiện GC hoặc bước JIT.",
+      "verificationWorkflow": "https://github.com/ilcde/tracescope/actions/workflows/verify.yml"
     },
     {
       "id": "kotlin",
       "name": "Kotlin",
       "runtime": "Kotlin/JVM 2.3.10 + JDK 21",
-      "host": "Windows AMD64",
+      "host": "Windows x86-64; Fedora 43/44 and Ubuntu 24.04 x86-64 containers",
       "target": "JVM",
       "abi": "JVM classfile",
       "mode": "local runner / JDI",
@@ -102,14 +106,15 @@
       "evidence": [
         "evidence/kotlin.json"
       ],
-      "limit": "Single Main.kt. Coroutine state machines are not reconstructed into logical continuations.",
-      "limitVi": "Một tệp Main.kt. Chưa dựng lại tiếp diễn logic từ máy trạng thái coroutine."
+      "limit": "Multi-file Kotlin/JVM projects. Coroutine state machines are not reconstructed into logical continuations.",
+      "limitVi": "Dự án Kotlin/JVM nhiều tệp. Chưa dựng lại continuation logic từ máy trạng thái coroutine.",
+      "verificationWorkflow": "https://github.com/ilcde/tracescope/actions/workflows/verify.yml"
     },
     {
       "id": "c",
       "name": "C",
-      "runtime": "GCC / GDB (w64devkit 2.5.0)",
-      "host": "Windows AMD64",
+      "runtime": "GCC + GDB; w64devkit 2.5.0 on Windows, distro packages on Linux",
+      "host": "Windows x86-64; Fedora 43/44 and Ubuntu 24.04 x86-64 containers",
       "target": "x86-64",
       "abi": "Windows x64",
       "mode": "local native runner",
@@ -122,14 +127,15 @@
       "evidence": [
         "evidence/c.json"
       ],
-      "limit": "Single C17 file. No CMake project import, sanitizer path or complete heap lifetimes.",
-      "limitVi": "Một tệp C17. Chưa nhập dự án CMake, chạy sanitizer hoặc ghi đủ vòng đời heap."
+      "limit": "Multi-file C17 with headers and bounded aggregate fields. No CMake orchestration, sanitizer path or complete heap lifetimes.",
+      "limitVi": "C17 nhiều tệp với header và trường cấu trúc có giới hạn. Chưa tích hợp CMake, sanitizer hoặc vòng đời heap đầy đủ.",
+      "verificationWorkflow": "https://github.com/ilcde/tracescope/actions/workflows/verify.yml"
     },
     {
       "id": "cpp",
       "name": "C++",
-      "runtime": "GCC / GDB (w64devkit 2.5.0)",
-      "host": "Windows AMD64",
+      "runtime": "GCC + GDB; w64devkit 2.5.0 on Windows, distro packages on Linux",
+      "host": "Windows x86-64; Fedora 43/44 and Ubuntu 24.04 x86-64 containers",
       "target": "x86-64",
       "abi": "Windows x64",
       "mode": "local native runner",
@@ -142,14 +148,15 @@
       "evidence": [
         "evidence/cpp.json"
       ],
-      "limit": "Single C++17 file. No container pretty-printer or complete class layout renderer.",
-      "limitVi": "Một tệp C++17. Chưa có trình hiển thị container hoặc bố trí lớp đầy đủ."
+      "limit": "Multi-file C++17 and bounded aggregate fields. Raw standard-library layouts; no pretty-printers or full heap lifetimes.",
+      "limitVi": "C++17 nhiều tệp và trường cấu trúc có giới hạn. Hiện cấu trúc thư viện thô; chưa có pretty-printer hoặc vòng đời heap đầy đủ.",
+      "verificationWorkflow": "https://github.com/ilcde/tracescope/actions/workflows/verify.yml"
     },
     {
       "id": "rust",
       "name": "Rust",
       "runtime": "rustc 1.90.0 + GDB",
-      "host": "Windows AMD64",
+      "host": "Windows x86-64; Fedora 43/44 and Ubuntu 24.04 x86-64 containers",
       "target": "x86-64-pc-windows-gnu",
       "abi": "Windows x64",
       "mode": "local native runner",
@@ -163,8 +170,9 @@
         "evidence/rust.json",
         "evidence/rust-modified.json"
       ],
-      "limit": "Single .rs file; no Cargo, move/borrow/drop tracking.",
-      "limitVi": "Một tệp .rs; chưa có Cargo hoặc ghi vết move/borrow/drop."
+      "limit": "Local Rust modules and aggregate fields. No Cargo orchestration or move/borrow/drop reconstruction.",
+      "limitVi": "Mô-đun Rust cục bộ và trường cấu trúc. Chưa tích hợp Cargo hoặc dựng lại move/borrow/drop.",
+      "verificationWorkflow": "https://github.com/ilcde/tracescope/actions/workflows/verify.yml"
     },
     {
       "id": "html",
@@ -184,8 +192,9 @@
         "evidence/ui-smoke.json",
         "evidence/html.png"
       ],
-      "limit": "One document; user scripts and network blocked. Snapshot enumeration is not browser parser stepping.",
-      "limitVi": "Một tài liệu; chặn script người dùng và mạng. Liệt kê ảnh chụp không phải bước bộ phân tích trình duyệt."
+      "limit": "Document with local CSS files. User scripts and network blocked. DOM/style snapshots are not browser parser stepping.",
+      "limitVi": "Tài liệu với CSS cục bộ. Chặn mã script và mạng. Ảnh chụp DOM/style không phải bước bộ phân tích trình duyệt.",
+      "verificationWorkflow": "https://github.com/ilcde/tracescope/actions/workflows/verify.yml"
     },
     {
       "id": "css",
@@ -205,7 +214,8 @@
         "evidence/ui-smoke.json"
       ],
       "limit": "Controlled document. Cascade provenance and internal paint timing unavailable.",
-      "limitVi": "Tài liệu có kiểm soát. Chưa có nguồn gốc cascade hoặc thời gian vẽ nội bộ."
+      "limitVi": "Tài liệu có kiểm soát. Chưa có nguồn gốc cascade hoặc thời gian vẽ nội bộ.",
+      "verificationWorkflow": "https://github.com/ilcde/tracescope/actions/workflows/verify.yml"
     }
   ],
   "assemblyProfiles": [
@@ -245,8 +255,8 @@
       "verification": "tested"
     }
   ],
-  "platformNote": "Windows native window and packaged Python execution tested. Android 16 emulator local WASM tested; physical-device and paired TLS acceptance untested. Fedora acceptance blocked: user confirmed no host/VM. Native trusted mode is not a sandbox.",
-  "platformNoteVi": "Đã kiểm thử cửa sổ gốc Windows và Python đóng gói. Đã kiểm thử WASM cục bộ trên máy ảo Android 16; chưa kiểm chứng thiết bị thật/ghép nối TLS. Fedora bị chặn vì không có máy/VM. Chế độ tin cậy không phải sandbox.",
+  "platformNote": "Windows and Fedora 43/44 / Ubuntu 24.04 backend suites run in GitHub Actions. Native Linux RPM/DEB and GTK checks have separate job results. Android emulator local WASM tested; physical-device, Wayland and SELinux acceptance remain unverified. Trusted native mode is not a sandbox.",
+  "platformNoteVi": "Bộ kiểm thử Windows, Fedora 43/44 và Ubuntu 24.04 chạy trên GitHub Actions. Gói RPM/DEB và GTK có kết quả riêng. Đã kiểm thử WASM trên máy ảo Android; chưa kiểm chứng thiết bị thật, Wayland và SELinux. Chế độ gốc tin cậy không phải sandbox.",
   "isaEvidence": [
     {
       "profile": "x86-16",

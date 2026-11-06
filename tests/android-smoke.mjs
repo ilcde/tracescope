@@ -1,5 +1,6 @@
 import {chromium} from '@playwright/test';
 import fs from 'node:fs/promises';
+import assert from 'node:assert/strict';
 const targets=await (await fetch('http://127.0.0.1:9223/json/list')).json();
 const browser=await chromium.connectOverCDP('http://127.0.0.1:9223');const page=browser.contexts()[0].pages()[0];const errors=[];page.on('pageerror',e=>errors.push(String(e)));
 if(await page.getByTitle('Ngôn ngữ',{exact:true}).count())await page.getByTitle('Ngôn ngữ',{exact:true}).click();
@@ -9,7 +10,9 @@ await page.waitForFunction(()=>document.querySelector('.status-label')?.textCont
 const eventCount=await page.locator('.event-counter').innerText();const slider=page.getByRole('slider',{name:'Execution timeline'});await slider.fill(await slider.getAttribute('max'));
 await page.getByRole('button',{name:'Output',exact:true}).click();await page.getByRole('button',{name:'Console',exact:true}).click();
 const output=await page.locator('.console-output').innerText();
+assert.match(output,/21/);
 await page.getByRole('button',{name:'Diagram',exact:true}).click();await page.screenshot({path:'evidence/android-app.png'});
+await page.getByRole('button',{name:'Fullscreen diagram',exact:true}).click();assert.equal(await page.locator('.source-panel').isVisible(),false);assert.ok(await page.locator('.neuron-node').count()>0);await page.screenshot({path:'evidence/android-fullscreen.png'});await page.getByRole('button',{name:'Exit fullscreen',exact:true}).click();
 await page.getByTitle('Language',{exact:true}).click();await page.screenshot({path:'evidence/android-app-vi.png'});
 const info=await page.evaluate(()=>({userAgent:navigator.userAgent,width:innerWidth,height:innerHeight,overflow:document.documentElement.scrollWidth>innerWidth}));
-await fs.writeFile('evidence/android-smoke.json',JSON.stringify({eventCount,output,errors,...info},null,2));console.log(JSON.stringify({eventCount,output,errors,...info}));await browser.close();
+assert.deepEqual(errors,[]);assert.equal(info.overflow,false);await fs.writeFile('evidence/android-smoke.json',JSON.stringify({status:'passed',eventCount,output,fullscreen:true,neuronGraph:true,errors,...info},null,2));console.log(JSON.stringify({eventCount,output,errors,...info}));await browser.close();

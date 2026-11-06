@@ -16,8 +16,12 @@ with zipfile.ZipFile(build/'classes.jar','w') as z:
     for path in (build/'classes').rglob('*.class'):z.write(path,path.relative_to(build/'classes'))
 run([jdk/('bin/java'+suffix),'-cp',tools/'lib/d8.jar','com.android.tools.r8.D8','--min-api','26','--lib',platform,'--output',build/'dex',build/'classes.jar'])
 run([tools/('aapt2'+suffix),'link','--manifest',ROOT/'android/AndroidManifest.xml','-I',platform,'-A',ROOT/'dist','-o',build/'unsigned.apk'])
-with zipfile.ZipFile(build/'unsigned.apk','a',zipfile.ZIP_DEFLATED) as z:z.write(build/'dex/classes.dex','classes.dex')
-run([tools/('zipalign'+suffix),'-f','4',build/'unsigned.apk',build/'aligned.apk'])
+# Rebuild the ZIP directory consistently before alignment. Appending with
+# Python to AAPT2's existing archive can leave header flags inconsistent.
+with zipfile.ZipFile(build/'unsigned.apk') as source,zipfile.ZipFile(build/'with-dex.apk','w',zipfile.ZIP_DEFLATED) as z:
+    for item in source.infolist():z.writestr(item.filename,source.read(item),compress_type=item.compress_type)
+    z.write(build/'dex/classes.dex','classes.dex')
+run([tools/('zipalign'+suffix),'-f','4',build/'with-dex.apk',build/'aligned.apk'])
 keystore=build/'debug.keystore'
 if not keystore.exists():run([jdk/('bin/keytool'+suffix),'-genkeypair','-keystore',keystore,'-storepass','android','-alias','androiddebugkey','-keypass','android','-keyalg','RSA','-keysize','2048','-validity','3650','-dname','CN=TraceScope Development'])
 out=ROOT/'packages';out.mkdir(exist_ok=True)

@@ -23,6 +23,16 @@ The setup-toolchains script installs checksum-pinned workspace-local GCC, GDB an
 
 ## Fedora 43 / 44
 
+Download the RPM matching your Fedora release from [Releases](https://github.com/ilcde/tracescope/releases). Install and launch:
+
+```bash
+sudo dnf install ./tracescope-0.2.0-1.fc44.x86_64.rpm  # use fc43 on Fedora 43
+tracescope doctor
+tracescope desktop --trusted-local
+```
+
+The RPM installs the desktop entry and includes offline Python dependency wheels. First launch creates a user-owned runtime. Compiler/JDK/Kotlin prerequisites below still apply. For source development:
+
 ```bash
 sudo dnf install git python3 python3-pip nodejs npm gcc gcc-c++ gdb binutils java-devel unzip curl
 # Optional native GTK window; the browser UI does not need GTK.
@@ -45,6 +55,15 @@ The printed URL includes an execution token; keep it private. Keep SELinux enabl
 
 ## Ubuntu / Debian
 
+Ubuntu 24.04 has a distribution-specific DEB:
+
+```bash
+sudo apt install ./tracescope_0.2.0_ubuntu24.04_amd64.deb
+tracescope desktop --trusted-local
+```
+
+Other Debian releases should use source setup and their own verification:
+
 ```bash
 sudo apt-get update
 sudo apt-get install git python3 python3-pip python3-venv nodejs npm gcc g++ gdb binutils openjdk-21-jdk unzip curl
@@ -60,7 +79,7 @@ Use Node 22+ if the distribution's Node is older. Install the same Rust/Kotlin t
 
 ## Android
 
-Download the `android-debug-apk` artifact from a successful [GitHub Actions run](https://github.com/ilcde/tracescope/actions/workflows/verify.yml), or build with `python scripts/build_android.py` after installing JDK 21, SDK platform 35 and build-tools 35.0.0. Install `TraceScope-debug.apk`. It is a development build, not a signed production store release.
+Download `TraceScope-debug.apk` from [Releases](https://github.com/ilcde/tracescope/releases), or the `android-debug-apk` artifact from a successful [GitHub Actions run](https://github.com/ilcde/tracescope/actions/workflows/verify.yml), or build with `python scripts/build_android.py` after installing JDK 21, SDK platform 35 and build-tools 35.0.0. Install `TraceScope-debug.apk`. It is a development build, not a signed production store release.
 
 Local offline functionality includes JavaScript/TypeScript WASM, HTML/CSS analysis, editing and replay. Heavyweight languages use your HTTPS runner. Android uses the system document picker to open/export files. No root access is required.
 
@@ -76,3 +95,11 @@ node tests/web-ui.mjs
 ```
 
 The browser test uses Playwright Chromium on Linux (`npx playwright install --with-deps chromium`). Results and actual screenshots are written under `evidence/` and uploaded by CI. Check the exact workflow commit and job result before treating a platform as verified.
+
+## Updates and uninstallation
+
+Extract each Windows ZIP into a fresh folder. On Fedora/Ubuntu install the new RPM/DEB with the package manager; the launcher updates its user-owned dependency environment when the wheel set changes. Android development builds must share a signing key for an in-place update. CI generates temporary keys, so switching between independently signed debug APKs may require uninstalling the older app (which removes its local state); export projects/traces first.
+
+Windows run data is under `%LOCALAPPDATA%/TraceScope`; Linux uses `$XDG_STATE_HOME/tracescope` or `~/.local/state/tracescope`. `TRACESCOPE_DATA_DIR` overrides the runner's directory. Web projects and replay sessions stay in the browser profile. Removing a package does not erase external project exports.
+
+For a runner error, run `doctor`, check the language's observation boundary, and preserve the original compiler diagnostic. For a website-native-language request, connect a runner; installing a compiler on GitHub Pages is not possible. See [Linux details](LINUX.md), [project format](PROJECTS.md) and [security](SECURITY.md).

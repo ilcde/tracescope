@@ -2,7 +2,7 @@
 
 100 stable paragraph-level requirements retained from the complete brief. **Product acceptance: incomplete.**
 
-Implementation and verification are separate. `limited` means a useful subset exists, not that the paragraph is accepted. `untested` here means the complete paragraph has not passed acceptance; individual working baselines have actual evidence in `capabilities.json` and `evidence/`. Fedora blocking is based on the user confirming no host/VM is available.
+Implementation and verification are separate. `limited` means a useful subset exists, not that the paragraph is accepted. `untested` here means the complete paragraph has not passed acceptance; individual working baselines have actual evidence in `capabilities.json` and `evidence/`. Fedora 43/44 and Ubuntu 24.04 now have GitHub Actions backend and packaging jobs. Physical Fedora SELinux/Wayland acceptance still needs a host/VM.
 
 ## Delivered, individually verified slices
 
@@ -12,7 +12,14 @@ Implementation and verification are separate. `limited` means a useful subset ex
 
 ## Open completion gate
 
-Multi-file/project build formats; true isolation of compilation and native execution; authenticated paired-device TLS acceptance; full DOM/event bridge; browser-native JS adapter; WASM/JIT instruction state; complete heap lifetimes, ownership and dependency graphs; conditional breakpoints/watchpoints; multi-thread causal reconstruction; all requested static complexity patterns; packaged Linux acceptance; physical Android/Poco testing and comprehensive accessibility/rendering budgets remain open.
+Build-system orchestration beyond the implemented multi-file source projects; true isolation of compilation and native execution; authenticated paired-device TLS acceptance; full DOM/event bridge; browser-native JS adapter; WASM/JIT instruction state; complete heap lifetimes, ownership and dependency graphs; conditional controls beyond Python and hardware watchpoints; multi-thread causal reconstruction; all requested static complexity patterns; physical Linux desktop/security acceptance; physical Android/Poco testing and comprehensive accessibility/rendering budgets remain open.
+
+## Updates in 0.2
+
+- TS-04: multi-file projects across the named execution adapters, project persistence, source-file replay, environment/entry configuration and all-language editor modes are implemented; build-system orchestration remains open.
+- TS-06: Python conditional breakpoints and observed-value watches now accompany live stepping; other backends still use captured replay.
+- TS-07: fullscreen typed neuron diagrams, identity-aware references, readable phone layout and real SVG export are implemented. Python instance storage/slots and native aggregate fields feed the graph. Ownership and complete data-dependency reconstruction remain open.
+- Distribution: public repository and WebUI deployment, CI Windows/Fedora/Ubuntu/Android jobs, Windows ZIP, Fedora RPM, Ubuntu DEB and Android APK build paths now exist. Exact pass/fail evidence is in [Actions](https://github.com/ilcde/tracescope/actions/workflows/verify.yml).
 
 ## Product goal and complete scope
 

@@ -34,9 +34,13 @@ for path in site.iterdir():
         shutil.copytree(path, target, dirs_exist_ok=True, ignore=shutil.ignore_patterns('__pycache__'))
     else:
         shutil.copy2(path, target)
-for name in ('tracescope', 'dist'):
-    shutil.copytree(root/name, out/name, dirs_exist_ok=True, ignore=shutil.ignore_patterns('__pycache__'))
+for name in ('tracescope', 'dist', 'docs', 'examples'):
+    target=(out/name).resolve()
+    if not target.is_relative_to(out.resolve()):raise RuntimeError('Package target escaped output directory')
+    if target.exists():shutil.rmtree(target)
+    shutil.copytree(root/name, target, ignore=shutil.ignore_patterns('__pycache__'))
 shutil.copy2(root/'capabilities.json', out/'capabilities.json')
+shutil.copy2(root/'README.md', out/'README.md')
 compiler = root/'.tools/w64devkit/bin/gcc.exe'
 if not compiler.exists():
     compiler = shutil.which('gcc')

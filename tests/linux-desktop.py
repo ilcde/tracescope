@@ -1,5 +1,5 @@
 """Exercise an installed GTK/WebKit window on an Xvfb display in CI."""
-import json, os, threading, time, traceback, tempfile
+import json, os, threading, time, traceback, tempfile, struct, zlib
 from pathlib import Path
 import webview
 from tracescope.service import make_server
@@ -33,14 +33,22 @@ def check():
         time.sleep(.5)
         assert window.evaluate_js('getComputedStyle(document.querySelector(".source-panel")).display')=='none'
         from gi.repository import Gdk, GLib
-        captured=threading.Event()
+        captured=threading.Event();capture_errors=[]
         def screenshot():
             try:
                 root=Gdk.get_default_root_window();pixbuf=Gdk.pixbuf_get_from_window(root,0,0,root.get_width(),root.get_height())
-                pixbuf.savev(str(evidence/'linux-native-fullscreen.png'),'png',[],[])
+                # Encode the actual X11 pixels directly. Fedora's PNG plugin
+                # starts an additional sandbox that is unavailable in CI.
+                width,height=pixbuf.get_width(),pixbuf.get_height();channels=pixbuf.get_n_channels();stride=pixbuf.get_rowstride();pixels=pixbuf.get_pixels()
+                def chunk(kind,data):return struct.pack('!I',len(data))+kind+data+struct.pack('!I',zlib.crc32(kind+data)&0xffffffff)
+                rows=b''.join(b'\0'+pixels[y*stride:y*stride+width*channels] for y in range(height))
+                png=b'\x89PNG\r\n\x1a\n'+chunk(b'IHDR',struct.pack('!IIBBBBB',width,height,8,6 if channels==4 else 2,0,0,0))+chunk(b'IDAT',zlib.compress(rows))+chunk(b'IEND',b'')
+                (evidence/'linux-native-fullscreen.png').write_bytes(png)
+            except Exception:capture_errors.append(traceback.format_exc())
             finally:captured.set()
             return False
-        GLib.idle_add(screenshot);assert captured.wait(10)
+        GLib.idle_add(screenshot);assert captured.wait(10);assert not capture_errors,capture_errors
+        assert (evidence/'linux-native-fullscreen.png').stat().st_size>1000
         result.update(status='passed',javascriptExecution=True,networkDiagram=True,fullscreen=True)
     except Exception:
         result['error']=traceback.format_exc()

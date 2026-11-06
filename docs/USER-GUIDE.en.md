@@ -1,6 +1,6 @@
 # TraceScope user guide
 
-TraceScope 0.1 is a working execution workbench, **not a completed implementation of the full product brief**. Read `capabilities.json` and `REQUIREMENTS.md` for exact boundaries.
+TraceScope 0.2 is a working execution workbench, **not a completed implementation of the full product brief**. Read `capabilities.json` and `REQUIREMENTS.md` for exact boundaries.
 
 ## Start on this Windows workspace
 
@@ -27,7 +27,7 @@ Portable Windows build: `packages\TraceScope-Windows\TraceScope.exe desktop --tr
 3. Run & trace (F5). Real capture happens independently of playback speed. Live Python breakpoints pause before their source line. Other adapters collect bounded logs and then replay.
 4. Scrub the timeline or use previous / into / over / out. Step-over/out use captured frame depth where present. During a paused live Python session these buttons issue debugger commands. Missing frame information cannot support real step-over/out semantics.
 5. Select a typed value. The inspector displays actual state, previous snapshot, identity and sizes/addresses only where known. Object IDs denote logical identity, not fabricated addresses. Aliases point to the same object ID.
-6. Switch diagrams between logical values/objects, the observed source path, and captured call stack. SVG export produces a typed-value snapshot. CodeMirror supports Ctrl+F search and gutter breakpoints.
+6. Switch between the neuron graph, logical values/objects, observed source path and captured call stack. The fullscreen button expands the diagram while retaining replay controls. Use zoom or Fit diagram for readability. SVG export preserves the displayed neuron graph. CodeMirror supports Ctrl+F search and gutter breakpoints.
 7. Open Instructions & VM. Python/JVM bytecode, generated JavaScript and native machine code are labelled separately. They are not interchangeable. Source mappings may be missing, especially in optimized code.
 8. Export/import a portable JSON trace. Historical navigation never executes code or repeats I/O. Edits do not change the captured source; use the source snapshot button to inspect the old build. Last completed session is persisted in IndexedDB.
 
@@ -62,3 +62,23 @@ Pairing is manual bearer-token configuration. Native compilation occurs on that 
 Run `.venv\Scripts\python.exe -m tracescope doctor`. Missing tools are reported explicitly. Native execution stays locked without the trusted flag. A failing compile retains timing and diagnostics. A stopped/quota-limited execution retains its valid partial trace. User code may legitimately raise exceptions or exit nonzero; do not assume every failed status is an adapter failure.
 
 Live capture is bounded to 5,000 events and 24 MB per run, 64 KiB output in instrumented adapters, 120 s runner wall time, and two concurrent sessions. Windows Job objects add a 1 GiB committed-memory limit, 24-process limit and 60 s job CPU limit when assignment succeeds. These controls do not establish isolation. Output quotas on all compiler/benchmark subprocesses are not complete. Only trusted code should use native mode.
+
+## Multi-file projects and source snapshots
+
+Open several source files together, or import a `tracescope-project/1` JSON file. File tabs edit each source; Run settings selects the entry file independently. Save project exports all files and run settings. Projects are retained locally across reloads within the file quota. See [PROJECTS.md](PROJECTS.md) for nested paths, supported module formats and limits.
+
+During replay, the source snapshot follows the captured event's file. Return to edits restores the current project. Editing a helper file also marks a trace stale. Captured history is immutable; run again to observe edits.
+
+## Python live conditions and watches
+
+Set gutter breakpoints, then optionally enter a condition in Run settings, such as `i >= 3 and total < 100`. Conditions accept primitive local names, constants, comparisons, boolean operators and bounded arithmetic. Calls, attribute access and indexing are rejected. Missing/nonprimitive values make the condition false; getters and user comparison methods are never invoked.
+
+The watch field accepts comma-separated names, such as `total, result`. Execution pauses when their captured representation changes at a line/opcode boundary. This is an observed-value watch, not a CPU hardware watchpoint; changes between observations or beyond the capture depth may not be visible. Conditions and watches are Python-only and apply to the next run.
+
+Python object graphs inspect ordinary instance dictionaries and slots without properties. Native C/C++/Rust diagrams expose bounded debugger aggregate fields; C++ access groups and raw standard-library layouts are labeled as such. Uncaptured addresses, ownership and lifetimes are never inferred.
+
+## WebUI, Linux and Android
+
+Use [the published WebUI](https://ilcde.github.io/tracescope/) for local JS/TS and HTML/CSS. Select an HTTPS runner in Run settings for native-backed languages. The same interface is packaged for Windows, Linux and Android; installation commands, prerequisites and update behavior are in [INSTALL.md](INSTALL.md).
+
+On phones, the neuron graph becomes a vertical layout with readable nodes. The bottom navigation switches source, diagram, inspector and output. Android's system picker supports multi-file selection; nested project layouts can be imported through project JSON. Android fullscreen uses the application diagram layout even when the WebView does not grant browser fullscreen.

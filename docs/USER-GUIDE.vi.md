@@ -1,6 +1,6 @@
 # Hướng dẫn TraceScope
 
-TraceScope 0.1 là công cụ thực thi và học bằng quan sát đã chạy được, **chưa hoàn thành toàn bộ đặc tả sản phẩm**. Xem `capabilities.json` và `REQUIREMENTS.md` để biết phạm vi đã kiểm chứng.
+TraceScope 0.2 là công cụ thực thi và học bằng quan sát đã chạy được, **chưa hoàn thành toàn bộ đặc tả sản phẩm**. Xem `capabilities.json` và `REQUIREMENTS.md` để biết phạm vi đã kiểm chứng.
 
 ## Khởi động trên Windows
 
@@ -52,3 +52,25 @@ Chạy `.venv\Scripts\python.exe -m tracescope doctor` để kiểm tra bộ cô
 Hạn mức gồm tối đa 5.000 sự kiện, 24 MB bản ghi, đầu ra 64 KiB ở các bộ ghi có kiểm soát, 120 giây thời gian máy chạy và hai phiên đồng thời. Windows Job giới hạn bộ nhớ committed toàn nhóm 1 GiB, 24 tiến trình và 60 giây CPU khi gán Job thành công. Các hạn mức này **không tạo ranh giới cách ly**. Hạn mức đầu ra ở mọi tiến trình biên dịch/benchmark còn chưa hoàn chỉnh.
 
 Thuật ngữ: trace = bản ghi/vết thực thi; frame = khung lời gọi; heap = vùng nhớ động; stack = ngăn xếp; alias = tham chiếu cùng đối tượng; unavailable = không khả dụng; uncaptured = chưa ghi nhận; optimized out = bị tối ưu bỏ; replay = xem lại; bound = cận; empirical fit = khớp thực nghiệm.
+
+## Sơ đồ nơ-ron và toàn màn hình
+
+Chọn “Sơ đồ nơ-ron” để xem các nút có tên, kiểu và giá trị cùng đường nối chứa/tham chiếu từ dữ liệu đã ghi nhận. Đối tượng dùng chung chỉ xuất hiện một lần; đây không phải suy luận phụ thuộc dữ liệu hoặc mạng AI. Nút toàn màn hình mở rộng sơ đồ nhưng vẫn giữ điều khiển xem lại. Dùng phóng to/thu nhỏ hoặc “Vừa khung”; có thể xuất sơ đồ đang hiển thị thành SVG. Trên điện thoại, các nút được xếp dọc để dễ đọc.
+
+## Dự án nhiều tệp
+
+Mở nhiều tệp nguồn cùng lúc hoặc nhập JSON theo định dạng `tracescope-project/1`. Các tab dùng để sửa từng tệp; tệp chạy chính được chọn riêng trong Thiết lập chạy. “Lưu dự án” xuất toàn bộ tệp và cấu hình. Dự án được lưu cục bộ qua lần tải lại trong giới hạn dung lượng. Xem [PROJECTS.md](PROJECTS.md) để biết đường dẫn lồng nhau và định dạng mô-đun hỗ trợ.
+
+Khi xem lại, trình soạn thảo hiển thị ảnh chụp của đúng tệp chứa sự kiện. “Trở lại mã đang sửa” phục hồi dự án hiện tại. Sửa tệp phụ cũng đánh dấu bản ghi cũ; phải chạy lại để quan sát thay đổi. Xem lại không sửa bản ghi và không lặp tác dụng I/O.
+
+## Điều kiện điểm dừng và theo dõi Python
+
+Đặt điểm dừng ở lề, rồi nhập điều kiện như `i >= 3 and total < 100` trong Thiết lập chạy. Điều kiện chỉ đọc biến nguyên thủy, hằng, phép so sánh, toán tử logic và số học có giới hạn. Không cho gọi hàm, đọc thuộc tính hoặc truy cập chỉ số; không chạy getter hay phương thức so sánh của người dùng. Giá trị thiếu hoặc không nguyên thủy làm điều kiện sai.
+
+Ô theo dõi nhận tên biến ngăn cách bằng dấu phẩy, ví dụ `total, result`. Chương trình dừng khi biểu diễn đã ghi nhận của biến đổi tại ranh giới dòng/opcode. Đây không phải watchpoint phần cứng; thay đổi giữa hai lần chụp hoặc ngoài độ sâu giới hạn có thể không thấy. Chức năng hiện dành cho Python và áp dụng khi chạy lần kế tiếp.
+
+## Cài đặt và WebUI
+
+[WebUI công khai](https://ilcde.github.io/tracescope/) chạy JS/TS qua WASM và hiển thị HTML/CSS ngay trên thiết bị. Python, JVM, C/C++/Rust và hợp ngữ cần máy chạy riêng; nhập URL HTTPS và mã ghép nối trong Thiết lập chạy. Không nhập token GitHub vào ô mã ghép nối.
+
+Hướng dẫn [INSTALL.md](INSTALL.md) có gói Windows, RPM Fedora 43/44, DEB Ubuntu 24.04, APK Android, cách cập nhật và vị trí dữ liệu. Máy chạy gốc mặc định bị khóa; `--trusted-local` cho chương trình quyền của tài khoản hiện tại, không phải sandbox. Kiểm thử container không thay thế kiểm chứng SELinux/Wayland hoặc thiết bị Android thật.

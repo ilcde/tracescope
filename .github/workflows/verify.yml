@@ -128,6 +128,22 @@ jobs:
           New-Item -ItemType Directory -Force evidence | Out-Null
           python -m tracescope doctor > evidence/environment.json
           python -m pytest tests/test_core.py tests/test_journeys.py tests/test_connection.py tests/test_projects.py tests/test_aggregates.py tests/test_conditions.py -q -p no:faulthandler --junitxml=evidence/windows.xml
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Build and verify Windows portable runtime
+        shell: pwsh
+        run: |
+          npm ci
+          npm run build
+          python scripts/build_windows.py
+          python tests/package-smoke.py
+          Compress-Archive -Path packages/TraceScope-Windows -DestinationPath packages/TraceScope-Windows.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-portable
+          path: packages/TraceScope-Windows.zip
       - uses: actions/upload-artifact@v4
         if: always()
         with:
